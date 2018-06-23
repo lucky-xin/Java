@@ -129,9 +129,7 @@ private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, Bean
 ## 注册AnnotationAwareAspectJAutoProxyCreator之后，在获取bean对象时是使用AnnotationAwareAspectJAutoProxyCreator来创建代理对象
 AnnotationAwareAspectJAutoProxyCreator类结构图如下
  ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AnnotationAwareAspectJAutoProxyCreator.png)
-## AnnotationAwareAspectJAutoProxyCreator实现了InstantiationAwareBeanPostProcessor接口，在创建对象时会查找
-## InstantiationAwareBeanPostProcessor并使用InstantiationAwareBeanPostProcessor来创建代理对象,如果成功创建了代理对象则直接
-## 返回该代理对象，否则根据BeanDefinition定义来创建对象，具体实现在AbstractAutowireCapableBeanFactory之中，看代码会看到
+## AnnotationAwareAspectJAutoProxyCreator实现了InstantiationAwareBeanPostProcessor接口，在创建对象时会查找InstantiationAwareBeanPostProcessor并使用InstantiationAwareBeanPostProcessor来创建代理对象,如果成功创建了代理对象则直接返回该代理对象，否则根据BeanDefinition定义来创建对象，具体实现在AbstractAutowireCapableBeanFactory之中，看代码会看到
 ```java
 /**
  * Central method of this class: creates a bean instance,
@@ -255,8 +253,7 @@ protected Object applyBeanPostProcessorsBeforeInstantiation(Class<?> beanClass, 
 	return null;
 }
 ```
-## 调用AnnotationAwareAspectJAutoProxyCreator类的postProcessBeforeInstantiation方法来创建代理对象。
-## postProcessBeforeInstantiation方法实现在AnnotationAwareAspectJAutoProxyCreator超类AbstractAutoProxyCreator的postProcessBeforeInstantiation方法之中.判断该Class是否有Aspect注解,如果有则根据Class信息创建Advisor并返回，每一个方法，每一个变量对应一个Advisor，具体实现如下代码
+## 调用AnnotationAwareAspectJAutoProxyCreator类的postProcessBeforeInstantiation方法来创建代理对象。postProcessBeforeInstantiation方法实现在AnnotationAwareAspectJAutoProxyCreator超类AbstractAutoProxyCreator的postProcessBeforeInstantiation方法之中.判断该Class是否有Aspect注解,如果有则根据Class信息创建Advisor并返回，每一个方法，每一个变量对应一个Advisor，具体实现如下代码
 ```java
 @Override
 public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) throws BeansException {
@@ -290,7 +287,7 @@ public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName
 	return null;
 }
 ```
-## 进入getAdvicesAndAdvisorsForBean之中，getAdvicesAndAdvisorsForBean为AbstractAutoProxyCreator类的抽象方法，具体实现在子类AbstractAdvisorAutoProxyCreator之中，最后查找分派到AnnotationAwareAspectJAutoProxyCreator的方法findCandidateAdvisors
+## 进入getAdvicesAndAdvisorsForBean之中，getAdvicesAndAdvisorsForBean为AbstractAutoProxyCreator类的抽象方法，具体实现在子类AbstractAdvisorAutoProxyCreator之中，最后查找分派到AnnotationAwareAspectJAutoProxyCreator的方法findCandidateAdvisors，并使用findAdvisorsThatCanApply方法过滤Advisor，只获取该bean的Advisor
 ```java
 @Override
 @Nullable
@@ -316,7 +313,7 @@ protected Object[] getAdvicesAndAdvisorsForBean(
  */
 protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
 	List<Advisor> candidateAdvisors = findCandidateAdvisors();//AnnotationAwareAspectJAutoProxyCreator重写了findCandidateAdvisors方法
-	List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);
+	List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);//只获取该bean的Advisor
 	extendAdvisors(eligibleAdvisors);
 	if (!eligibleAdvisors.isEmpty()) {
 		eligibleAdvisors = sortAdvisors(eligibleAdvisors);
@@ -324,8 +321,7 @@ protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName
 	return eligibleAdvisors;
 }
 ````
-## AnnotationAwareAspectJAutoProxyCreator重写了findCandidateAdvisors方法具体实现看如下代码
-## aspectJAdvisorsBuilder为BeanFactoryAspectJAdvisorsBuilder
+## AnnotationAwareAspectJAutoProxyCreator重写了findCandidateAdvisors方法具体实现看如下代码aspectJAdvisorsBuilder为BeanFactoryAspectJAdvisorsBuilder
 ```java
 @Override
 protected List<Advisor> findCandidateAdvisors() {
@@ -341,6 +337,374 @@ protected List<Advisor> findCandidateAdvisors() {
 ```
 ## BeanFactoryAspectJAdvisorsBuilder类如下图
 ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/BeanFactoryAspectJAdvisorsBuilder.png)
+## BeanFactoryAspectJAdvisorsBuilder类的方法buildAspectJAdvisors，第一次调用buildAspectJAdvisors方法时aspectBeanNames为null,后面直接读取aspectBeanNames。第一次初始化时会遍历DefaultListableBeanFactory获取所有已经注册的bean,获取bean的Class信息，判断是否有Aspect注解，如果有则缓存起来，
+然后遍历具体实现如下
+```java
+/**
+ * Look for AspectJ-annotated aspect beans in the current bean factory,
+ * and return to a list of Spring AOP Advisors representing them.
+ * <p>Creates a Spring Advisor for each AspectJ advice method.
+ * @return the list of {@link org.springframework.aop.Advisor} beans
+ * @see #isEligibleBean
+ */
+public List<Advisor> buildAspectJAdvisors() {
+	List<String> aspectNames = this.aspectBeanNames;
+
+	if (aspectNames == null) {
+		synchronized (this) {
+	aspectNames = this.aspectBeanNames;
+	if (aspectNames == null) {
+		List<Advisor> advisors = new LinkedList<>();
+		aspectNames = new LinkedList<>();
+		String[] beanNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
+				this.beanFactory, Object.class, true, false);
+		for (String beanName : beanNames) {
+			if (!isEligibleBean(beanName)) {
+				continue;
+			}
+			// We must be careful not to instantiate beans eagerly as in this case they
+			// would be cached by the Spring container but would not have been weaved.
+			Class<?> beanType = this.beanFactory.getType(beanName);
+			if (beanType == null) {
+				continue;
+			}
+			if (this.advisorFactory.isAspect(beanType)) {
+				// 把当前的bean名称存入缓存
+				aspectNames.add(beanName);
+				// AspectMetadata封装了注解信息
+				AspectMetadata amd = new AspectMetadata(beanType, beanName);
+				if (amd.getAjType().getPerClause().getKind() == PerClauseKind.SINGLETON) {
+					MetadataAwareAspectInstanceFactory factory =
+							new BeanFactoryAspectInstanceFactory(this.beanFactory, beanName);
+					List<Advisor> classAdvisors = this.advisorFactory.getAdvisors(factory);
+					if (this.beanFactory.isSingleton(beanName)) {
+						this.advisorsCache.put(beanName, classAdvisors);
+					}
+					else {
+						this.aspectFactoryCache.put(beanName, factory);
+					}
+					advisors.addAll(classAdvisors);
+				}
+				else {
+					// Per target or per this.
+					if (this.beanFactory.isSingleton(beanName)) {
+						throw new IllegalArgumentException("Bean with name '" + beanName +
+								"' is a singleton, but aspect instantiation model is not singleton");
+					}
+					MetadataAwareAspectInstanceFactory factory =
+							new PrototypeAspectInstanceFactory(this.beanFactory, beanName);
+					this.aspectFactoryCache.put(beanName, factory);
+					// 根据class获取Advisor
+					advisors.addAll(this.advisorFactory.getAdvisors(factory));
+				}
+			}
+		}
+		this.aspectBeanNames = aspectNames;
+		return advisors;
+	}
+		}
+	}
+```
+## 最后委派到MetadataAwareAspectInstanceFactory的方法getAdvisors获取Advisor.通过方法getAdvisorMethods判断获取该Class所有有Pointcut注解的方法
+```java
+@Override
+public List<Advisor> getAdvisors(MetadataAwareAspectInstanceFactory aspectInstanceFactory) {
+	Class<?> aspectClass = aspectInstanceFactory.getAspectMetadata().getAspectClass();
+	String aspectName = aspectInstanceFactory.getAspectMetadata().getAspectName();
+	validate(aspectClass);
+
+	// We need to wrap the MetadataAwareAspectInstanceFactory with a decorator
+	// so that it will only instantiate once.
+	MetadataAwareAspectInstanceFactory lazySingletonAspectInstanceFactory =
+			new LazySingletonAspectInstanceFactoryDecorator(aspectInstanceFactory);
+
+	List<Advisor> advisors = new LinkedList<>();
+	for (Method method : getAdvisorMethods(aspectClass)) {
+		// 获取方法注解并生成Advis
+		Advisor advisor = getAdvisor(method, lazySingletonAspectInstanceFactory, advisors.size(), aspectName);
+		if (advisor != null) {
+			advisors.add(advisor);
+		}
+	}
+
+	// If it's a per target aspect, emit the dummy instantiating aspect.
+	if (!advisors.isEmpty() && lazySingletonAspectInstanceFactory.getAspectMetadata().isLazilyInstantiated()) {
+		Advisor instantiationAdvisor = new SyntheticInstantiationAdvisor(lazySingletonAspectInstanceFactory);
+		advisors.add(0, instantiationAdvisor);
+	}
+
+	// Find introduction fields.
+	for (Field field : aspectClass.getDeclaredFields()) {
+		Advisor advisor = getDeclareParentsAdvisor(field);
+		if (advisor != null) {
+			advisors.add(advisor);
+		}
+	}
+
+	return advisors;
+}
+
+private List<Method> getAdvisorMethods(Class<?> aspectClass) {
+	final List<Method> methods = new LinkedList<>();
+	ReflectionUtils.doWithMethods(aspectClass, method -> {
+		// Exclude pointcuts
+		if (AnnotationUtils.getAnnotation(method, Pointcut.class) == null) {
+			methods.add(method);
+		}
+	});
+	methods.sort(METHOD_COMPARATOR);
+	return methods;
+}
+```
+## 进入MetadataAwareAspectInstanceFactory类的方法getAdvisor。查找方法是否有Before, Around, After, AfterReturning, AfterThrowing, Pointcut注解，找到就使用AspectJExpressionPointcut封装切入点信息并创建InstantiationModelAwarePointcutAdvisorImpl对象
+```java
+@Override
+@Nullable
+public Advisor getAdvisor(Method candidateAdviceMethod, MetadataAwareAspectInstanceFactory aspectInstanceFactory,
+		int declarationOrderInAspect, String aspectName) {
+
+	validate(aspectInstanceFactory.getAspectMetadata().getAspectClass());
+
+	AspectJExpressionPointcut expressionPointcut = getPointcut(
+			candidateAdviceMethod, aspectInstanceFactory.getAspectMetadata().getAspectClass());
+	if (expressionPointcut == null) {
+		return null;
+	}
+
+	return new InstantiationModelAwarePointcutAdvisorImpl(expressionPointcut, candidateAdviceMethod,
+			this, aspectInstanceFactory, declarationOrderInAspect, aspectName);
+}
+```
+## 进入getPointcut方法通过AbstractAspectJAdvisorFactory类的方法findAspectJAnnotationOnMethod查找方法是否有Before, Around, After, AfterReturning, AfterThrowing, Pointcut注解找到则使用AspectJAnnotation封装注解信息并返回。如果找到注解则创建AspectJExpressionPointcut封装切入点信息并返回
+```java
+@Nullable
+private AspectJExpressionPointcut getPointcut(Method candidateAdviceMethod, Class<?> candidateAspectClass) {
+	AspectJAnnotation<?> aspectJAnnotation =
+			AbstractAspectJAdvisorFactory.findAspectJAnnotationOnMethod(candidateAdviceMethod);
+	if (aspectJAnnotation == null) {
+		return null;
+	}
+
+	AspectJExpressionPointcut ajexp =
+			new AspectJExpressionPointcut(candidateAspectClass, new String[0], new Class<?>[0]);
+	ajexp.setExpression(aspectJAnnotation.getPointcutExpression());
+	if (this.beanFactory != null) {
+		ajexp.setBeanFactory(this.beanFactory);
+	}
+	return ajexp;
+}
+```
+## AbstractAspectJAdvisorFactory类的方法findAspectJAnnotationOnMethod具体实现如下
+```java
+/**
+ * Find and return the first AspectJ annotation on the given method
+ * (there <i>should</i> only be one anyway...)
+ */
+@SuppressWarnings("unchecked")
+@Nullable
+protected static AspectJAnnotation<?> findAspectJAnnotationOnMethod(Method method) {
+	Class<?>[] classesToLookFor = new Class<?>[] {
+			Before.class, Around.class, After.class, AfterReturning.class, AfterThrowing.class, Pointcut.class};
+	for (Class<?> c : classesToLookFor) {
+		AspectJAnnotation<?> foundAnnotation = findAnnotation(method, (Class<Annotation>) c);
+		if (foundAnnotation != null) {
+			return foundAnnotation;
+		}
+	}
+	return null;
+}
+
+@Nullable
+private static <A extends Annotation> AspectJAnnotation<A> findAnnotation(Method method, Class<A> toLookFor) {
+	A result = AnnotationUtils.findAnnotation(method, toLookFor);
+	if (result != null) {
+		return new AspectJAnnotation<>(result);
+	}
+	else {
+		return null;
+	}
+}
+
+```
+## 到此已经把该Class所有有Before, Around, After, AfterReturning, AfterThrowing, Pointcut注解的方法封装成Advisor。接下来遍历所有成员查找所有有DeclareParents注解的成员并封装成Advisor，具体实现如下代码
+```java
+/**
+ * Build a {@link org.springframework.aop.aspectj.DeclareParentsAdvisor}
+ * for the given introduction field.
+ * <p>Resulting Advisors will need to be evaluated for targets.
+ * @param introductionField the field to introspect
+ * @return the Advisor instance, or {@code null} if not an Advisor
+ */
+@Nullable
+private Advisor getDeclareParentsAdvisor(Field introductionField) {
+	DeclareParents declareParents = introductionField.getAnnotation(DeclareParents.class);
+	if (declareParents == null) {
+		// Not an introduction field
+		return null;
+	}
+
+	if (DeclareParents.class == declareParents.defaultImpl()) {
+		throw new IllegalStateException("'defaultImpl' attribute must be set on DeclareParents");
+	}
+
+	return new DeclareParentsAdvisor(
+			introductionField.getType(), declareParents.value(), declareParents.defaultImpl());
+}
+```
+## 根据该Class生成Advisor，存入list之中。此Advisor为InstantiationModelAwarePointcutAdvisorImpl
+获取Advisor之后返回到AnnotationAwareAspectJAutoProxyCreator的超类AbstractAutoProxyCreator类的postProcessBeforeInstantiation方法，调用createProxy方法创建代理对象
+```
+/**
+ * Create an AOP proxy for the given bean.
+ * @param beanClass the class of the bean
+ * @param beanName the name of the bean
+ * @param specificInterceptors the set of interceptors that is
+ * specific to this bean (may be empty, but not null)
+ * @param targetSource the TargetSource for the proxy,
+ * already pre-configured to access the bean
+ * @return the AOP proxy for the bean
+ * @see #buildAdvisors
+ */
+protected Object createProxy(Class<?> beanClass, @Nullable String beanName,
+		@Nullable Object[] specificInterceptors, TargetSource targetSource) {
+
+	if (this.beanFactory instanceof ConfigurableListableBeanFactory) {
+		AutoProxyUtils.exposeTargetClass((ConfigurableListableBeanFactory) this.beanFactory, beanName, beanClass);
+	}
+
+	ProxyFactory proxyFactory = new ProxyFactory();
+	proxyFactory.copyFrom(this);
+
+	if (!proxyFactory.isProxyTargetClass()) {
+		if (shouldProxyTargetClass(beanClass, beanName)) {
+			proxyFactory.setProxyTargetClass(true);
+		}
+		else {
+			evaluateProxyInterfaces(beanClass, proxyFactory);
+		}
+	}
+
+	Advisor[] advisors = buildAdvisors(beanName, specificInterceptors);
+	proxyFactory.addAdvisors(advisors);
+	proxyFactory.setTargetSource(targetSource);
+	customizeProxyFactory(proxyFactory);
+
+	proxyFactory.setFrozen(this.freezeProxy);
+	if (advisorsPreFiltered()) {
+		proxyFactory.setPreFiltered(true);
+	}
+
+	return proxyFactory.getProxy(getProxyClassLoader());
+}
+
+```
+## 调用buildAdvisors方法封装对应的Advisor。使用DefaultAdvisorAdapterRegistry来根据注解类型生成DefaultPointcutAdvisor，MethodBeforeAdviceAdapter，MethodBeforeAdviceAdapter，ThrowsAdviceAdapter
+
+```
+/**
+ * Determine the advisors for the given bean, including the specific interceptors
+ * as well as the common interceptor, all adapted to the Advisor interface.
+ * @param beanName the name of the bean
+ * @param specificInterceptors the set of interceptors that is
+ * specific to this bean (may be empty, but not null)
+ * @return the list of Advisors for the given bean
+ */
+protected Advisor[] buildAdvisors(@Nullable String beanName, @Nullable Object[] specificInterceptors) {
+	// Handle prototypes correctly...
+	Advisor[] commonInterceptors = resolveInterceptorNames();
+
+	List<Object> allInterceptors = new ArrayList<>();
+	if (specificInterceptors != null) {
+		allInterceptors.addAll(Arrays.asList(specificInterceptors));
+		if (commonInterceptors.length > 0) {
+			if (this.applyCommonInterceptorsFirst) {
+				allInterceptors.addAll(0, Arrays.asList(commonInterceptors));
+			}
+			else {
+				allInterceptors.addAll(Arrays.asList(commonInterceptors));
+			}
+		}
+	}
+	if (logger.isDebugEnabled()) {
+		int nrOfCommonInterceptors = commonInterceptors.length;
+		int nrOfSpecificInterceptors = (specificInterceptors != null ? specificInterceptors.length : 0);
+		logger.debug("Creating implicit proxy for bean '" + beanName + "' with " + nrOfCommonInterceptors +
+				" common interceptors and " + nrOfSpecificInterceptors + " specific interceptors");
+	}
+
+	Advisor[] advisors = new Advisor[allInterceptors.size()];
+	for (int i = 0; i < allInterceptors.size(); i++) {
+		advisors[i] = this.advisorAdapterRegistry.wrap(allInterceptors.get(i));
+	}
+	return advisors;
+}
+```
+## DefaultAdvisorAdapterRegistry类如下。因为返回specificInterceptors都为InstantiationModelAwarePointcutAdvisorImpl，在wrap方法之中直接返回该Advisor
+```
+public class DefaultAdvisorAdapterRegistry implements AdvisorAdapterRegistry, Serializable {
+
+	private final List<AdvisorAdapter> adapters = new ArrayList<>(3);
+
+
+	/**
+	 * Create a new DefaultAdvisorAdapterRegistry, registering well-known adapters.
+	 */
+	public DefaultAdvisorAdapterRegistry() {
+		registerAdvisorAdapter(new MethodBeforeAdviceAdapter());
+		registerAdvisorAdapter(new AfterReturningAdviceAdapter());
+		registerAdvisorAdapter(new ThrowsAdviceAdapter());
+	}
+
+
+	@Override
+	public Advisor wrap(Object adviceObject) throws UnknownAdviceTypeException {
+		if (adviceObject instanceof Advisor) {//adviceObject为InstantiationModelAwarePointcutAdvisorImpl
+			return (Advisor) adviceObject;
+		}
+		if (!(adviceObject instanceof Advice)) {
+			throw new UnknownAdviceTypeException(adviceObject);
+		}
+		Advice advice = (Advice) adviceObject;
+		if (advice instanceof MethodInterceptor) {
+			// So well-known it doesn't even need an adapter.
+			return new DefaultPointcutAdvisor(advice);
+		}
+		for (AdvisorAdapter adapter : this.adapters) {
+			// Check that it is supported.
+			if (adapter.supportsAdvice(advice)) {
+				return new DefaultPointcutAdvisor(advice);
+			}
+		}
+		throw new UnknownAdviceTypeException(advice);
+	}
+
+	@Override
+	public MethodInterceptor[] getInterceptors(Advisor advisor) throws UnknownAdviceTypeException {
+		List<MethodInterceptor> interceptors = new ArrayList<>(3);
+		Advice advice = advisor.getAdvice();
+		if (advice instanceof MethodInterceptor) {
+			interceptors.add((MethodInterceptor) advice);
+		}
+		for (AdvisorAdapter adapter : this.adapters) {
+			if (adapter.supportsAdvice(advice)) {
+				interceptors.add(adapter.getInterceptor(advisor));
+			}
+		}
+		if (interceptors.isEmpty()) {
+			throw new UnknownAdviceTypeException(advisor.getAdvice());
+		}
+		return interceptors.toArray(new MethodInterceptor[0]);
+	}
+
+	@Override
+	public void registerAdvisorAdapter(AdvisorAdapter adapter) {
+		this.adapters.add(adapter);
+	}
+
+}
+```
+
+
 ```java
 
 private static class DynamicAdvisedInterceptor implements MethodInterceptor, Serializable {
