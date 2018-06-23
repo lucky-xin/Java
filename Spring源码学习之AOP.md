@@ -45,7 +45,7 @@ public @interface EnableAspectJAutoProxy {
 }
 ```
 
-- 注解@EnableAspectJAutoProxy使用AspectJAutoProxyRegistrar注册AnnotationAwareAspectJAutoProxyCreator到BeanDefinitionRegistry之中。BeanDefinitionRegistry为DefaultListableBeanFactory
+## 注解@EnableAspectJAutoProxy使用AspectJAutoProxyRegistrar注册AnnotationAwareAspectJAutoProxyCreator到BeanDefinitionRegistry之中。BeanDefinitionRegistry为DefaultListableBeanFactory
 AspectJAutoProxyRegistrar类如下
 ```java
 /**
@@ -86,7 +86,7 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 
 }
 ```
-- 在AopConfigUtils之中完成注册如下
+## 在AopConfigUtils之中完成注册如下
 ```java
 @Nullable
 public static BeanDefinition registerAspectJAnnotationAutoProxyCreatorIfNecessary(BeanDefinitionRegistry registry) {
@@ -127,13 +127,131 @@ private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, Bean
 }
 
 ```
-- 注册AnnotationAwareAspectJAutoProxyCreator之后，在获取bean对象时是使用AnnotationAwareAspectJAutoProxyCreator来创建代理对象
+## 注册AnnotationAwareAspectJAutoProxyCreator之后，在获取bean对象时是使用AnnotationAwareAspectJAutoProxyCreator来创建代理对象
 AnnotationAwareAspectJAutoProxyCreator类结构图如下
  ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AnnotationAwareAspectJAutoProxyCreator.png)
- 
- 
- 
- AnnotationAwareAspectJAutoProxyCreator实现了InstantiationAwareBeanPostProcessor接口，在创建对象时会查找InstantiationAwareBeanPostProcessor并使用InstantiationAwareBeanPostProcessor来创建代理对象
+## AnnotationAwareAspectJAutoProxyCreator实现了InstantiationAwareBeanPostProcessor接口，在创建对象时会查找InstantiationAwareBeanPostProcessor并使用InstantiationAwareBeanPostProcessor来创建代理对象
+具体实现在AbstractAutowireCapableBeanFactory之中，看代码会看到
+```java
+/**
+ * Central method of this class: creates a bean instance,
+ * populates the bean instance, applies post-processors, etc.
+ * @see #doCreateBean
+ */
+@Override
+protected Object createBean(String beanName, RootBeanDefinition mbd, @Nullable Object[] args)
+		throws BeanCreationException {
+
+	if (logger.isDebugEnabled()) {
+		logger.debug("Creating instance of bean '" + beanName + "'");
+	}
+	RootBeanDefinition mbdToUse = mbd;
+
+	// Make sure bean class is actually resolved at this point, and
+	// clone the bean definition in case of a dynamically resolved Class
+	// which cannot be stored in the shared merged bean definition.
+	Class<?> resolvedClass = resolveBeanClass(mbd, beanName);
+	if (resolvedClass != null && !mbd.hasBeanClass() && mbd.getBeanClassName() != null) {
+		mbdToUse = new RootBeanDefinition(mbd);
+		mbdToUse.setBeanClass(resolvedClass);
+	}
+
+	// Prepare method overrides.
+	try {
+		mbdToUse.prepareMethodOverrides();
+	}
+	catch (BeanDefinitionValidationException ex) {
+		throw new BeanDefinitionStoreException(mbdToUse.getResourceDescription(),
+				beanName, "Validation of method overrides failed", ex);
+	}
+
+	try {
+		// Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
+		//遍历所有BeanPostProcessor找到InstantiationAwareBeanPostProcessor实现类来创建代理对象
+		//如果成功创建了代理对象，则返回该代理对象，不在往下执行
+		Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
+		if (bean != null) {
+			return bean;
+		}
+	}
+	catch (Throwable ex) {
+		throw new BeanCreationException(mbdToUse.getResourceDescription(), beanName,
+				"BeanPostProcessor before instantiation of bean failed", ex);
+	}
+
+	try {
+		// 如果没有找到InstantiationAwareBeanPostProcessor则根据BeanDefinition信息来创建对象
+		Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+		if (logger.isDebugEnabled()) {
+			logger.debug("Finished creating instance of bean '" + beanName + "'");
+		}
+		return beanInstance;
+	}
+	catch (BeanCreationException | ImplicitlyAppearedSingletonException ex) {
+		// A previously detected exception with proper bean creation context already,
+		// or illegal singleton state to be communicated up to DefaultSingletonBeanRegistry.
+		throw ex;
+	}
+	catch (Throwable ex) {
+		throw new BeanCreationException(
+				mbdToUse.getResourceDescription(), beanName, "Unexpected exception during bean creation", ex);
+	}
+}
+//进入resolveBeforeInstantiation方法之中
+/**
+ * Apply before-instantiation post-processors, resolving whether there is a
+ * before-instantiation shortcut for the specified bean.
+ * @param beanName the name of the bean
+ * @param mbd the bean definition for the bean
+ * @return the shortcut-determined bean instance, or {@code null} if none
+ */
+@Nullable
+protected Object resolveBeforeInstantiation(String beanName, RootBeanDefinition mbd) {
+	Object bean = null;
+	if (!Boolean.FALSE.equals(mbd.beforeInstantiationResolved)) {
+		// Make sure bean class is actually resolved at this point.
+		//判断是否有InstantiationAwareBeanPostProcessor实现类
+		if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
+			Class<?> targetType = determineTargetType(beanName, mbd);
+			if (targetType != null) {
+				bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);
+				if (bean != null) {
+					bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);
+				}
+			}
+		}
+		mbd.beforeInstantiationResolved = (bean != null);
+	}
+	return bean;
+}
+
+/**
+ * Apply InstantiationAwareBeanPostProcessors to the specified bean definition
+ * (by class and name), invoking their {@code postProcessBeforeInstantiation} methods.
+ * <p>Any returned object will be used as the bean instead of actually instantiating
+ * the target bean. A {@code null} return value from the post-processor will
+ * result in the target bean being instantiated.
+ * @param beanClass the class of the bean to be instantiated
+ * @param beanName the name of the bean
+ * @return the bean object to use instead of a default instance of the target bean, or {@code null}
+ * @see InstantiationAwareBeanPostProcessor#postProcessBeforeInstantiation
+ */
+@Nullable
+protected Object applyBeanPostProcessorsBeforeInstantiation(Class<?> beanClass, String beanName) {
+	//遍历查找InstantiationAwareBeanPostProcessor，并使用InstantiationAwareBeanPostProcessor来创建代理对象
+	for (BeanPostProcessor bp : getBeanPostProcessors()) {
+		if (bp instanceof InstantiationAwareBeanPostProcessor) {
+			InstantiationAwareBeanPostProcessor ibp = (InstantiationAwareBeanPostProcessor) bp;
+			Object result = ibp.postProcessBeforeInstantiation(beanClass, beanName);
+			if (result != null) {
+				return result;
+			}
+		}
+	}
+	return null;
+}
+```
+
 
 ```java
 
