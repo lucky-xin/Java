@@ -45,7 +45,7 @@ public @interface EnableAspectJAutoProxy {
 }
 ```
 
-## 注解`@EnableAspectJAutoProxy`使用`AspectJAutoProxyRegistrar`注册`AnnotationAwareAspectJAutoProxyCreator`到`BeanDefinitionRegistry`之中。`BeanDefinitionRegistry`为`DefaultListableBeanFactory,AspectJAutoProxyRegistrar`类如下
+## 注解@EnableAspectJAutoProxy使用AspectJAutoProxyRegistrar注册AnnotationAwareAspectJAutoProxyCreator到BeanDefinitionRegistry之中。BeanDefinitionRegistry为DefaultListableBeanFactory,AspectJAutoProxyRegistrar类如下
 ```java
 /**
  * Registers an {@link org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator
@@ -126,12 +126,12 @@ private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, Bean
 }
 
 ```
-## 注册`AnnotationAwareAspectJAutoProxyCreator`之后，在获取bean对象时是使用`AnnotationAwareAspectJAutoProxyCreator`来创建代理对象
-`AnnotationAwareAspectJAutoProxyCreator`类结构图如下
+## 注册AnnotationAwareAspectJAutoProxyCreator之后，在获取bean对象时是使用AnnotationAwareAspectJAutoProxyCreator来创建代理对象
+AnnotationAwareAspectJAutoProxyCreator类结构图如下
  ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AnnotationAwareAspectJAutoProxyCreator.png)
-## `AnnotationAwareAspectJAutoProxyCreator`实现了`InstantiationAwareBeanPostProcessor`接口，在创建对象时会查找
-##  `InstantiationAwareBeanPostProcessor`并使用InstantiationAwareBeanPostProcessor` 来创建代理对象,如果成功创建了代理对象则直接
-## 返回该代理对象，否则根据`BeanDefinition`定义来创建对象，具体实现在`AbstractAutowireCapableBeanFactory`之中，看代码会看到
+## AnnotationAwareAspectJAutoProxyCreator实现了InstantiationAwareBeanPostProcessor接口，在创建对象时会查找
+## InstantiationAwareBeanPostProcessor并使用InstantiationAwareBeanPostProcessor来创建代理对象,如果成功创建了代理对象则直接
+## 返回该代理对象，否则根据BeanDefinition定义来创建对象，具体实现在AbstractAutowireCapableBeanFactory之中，看代码会看到
 ```java
 /**
  * Central method of this class: creates a bean instance,
@@ -255,9 +255,92 @@ protected Object applyBeanPostProcessorsBeforeInstantiation(Class<?> beanClass, 
 	return null;
 }
 ```
+## 调用AnnotationAwareAspectJAutoProxyCreator类的postProcessBeforeInstantiation方法来创建代理对象。
+## postProcessBeforeInstantiation方法实现在AnnotationAwareAspectJAutoProxyCreator超类AbstractAutoProxyCreator的postProcessBeforeInstantiation方法之中.判断该Class是否有Aspect注解,如果有则根据Class信息创建Advisor并返回，每一个方法，每一个变量对应一个Advisor，具体实现如下代码
+```java
+@Override
+public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) throws BeansException {
+	Object cacheKey = getCacheKey(beanClass, beanName);
 
+	if (!StringUtils.hasLength(beanName) || !this.targetSourcedBeans.contains(beanName)) {
+		if (this.advisedBeans.containsKey(cacheKey)) {
+			return null;
+		}
+		if (isInfrastructureClass(beanClass) || shouldSkip(beanClass, beanName)) {
+			this.advisedBeans.put(cacheKey, Boolean.FALSE);
+			return null;
+		}
+	}
 
+	// Create proxy here if we have a custom TargetSource.
+	// Suppresses unnecessary default instantiation of the target bean:
+	// The TargetSource will handle target instances in a custom fashion.
+	TargetSource targetSource = getCustomTargetSource(beanClass, beanName);
+	if (targetSource != null) {
+		if (StringUtils.hasLength(beanName)) {
+			this.targetSourcedBeans.add(beanName);
+		}
+		//查找Aspect注解并创建Advisor，
+		Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(beanClass, beanName, targetSource);
+		Object proxy = createProxy(beanClass, beanName, specificInterceptors, targetSource);
+		this.proxyTypes.put(cacheKey, proxy.getClass());
+		return proxy;
+	}
 
+	return null;
+}
+```
+## 进入getAdvicesAndAdvisorsForBean之中，getAdvicesAndAdvisorsForBean为AbstractAutoProxyCreator类的抽象方法，具体实现在子类AbstractAdvisorAutoProxyCreator之中，最后查找分派到AnnotationAwareAspectJAutoProxyCreator的方法findCandidateAdvisors
+```java
+@Override
+@Nullable
+protected Object[] getAdvicesAndAdvisorsForBean(
+		Class<?> beanClass, String beanName, @Nullable TargetSource targetSource) {
+
+	List<Advisor> advisors = findEligibleAdvisors(beanClass, beanName);
+	if (advisors.isEmpty()) {
+		return DO_NOT_PROXY;
+	}
+	return advisors.toArray();
+}
+
+/**
+ * Find all eligible Advisors for auto-proxying this class.
+ * @param beanClass the clazz to find advisors for
+ * @param beanName the name of the currently proxied bean
+ * @return the empty List, not {@code null},
+ * if there are no pointcuts or interceptors
+ * @see #findCandidateAdvisors
+ * @see #sortAdvisors
+ * @see #extendAdvisors
+ */
+protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
+	List<Advisor> candidateAdvisors = findCandidateAdvisors();//AnnotationAwareAspectJAutoProxyCreator重写了findCandidateAdvisors方法
+	List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);
+	extendAdvisors(eligibleAdvisors);
+	if (!eligibleAdvisors.isEmpty()) {
+		eligibleAdvisors = sortAdvisors(eligibleAdvisors);
+	}
+	return eligibleAdvisors;
+}
+````
+## AnnotationAwareAspectJAutoProxyCreator重写了findCandidateAdvisors方法具体实现看如下代码
+## aspectJAdvisorsBuilder为BeanFactoryAspectJAdvisorsBuilder
+```java
+@Override
+protected List<Advisor> findCandidateAdvisors() {
+	// Add all the Spring advisors found according to superclass rules.
+	List<Advisor> advisors = super.findCandidateAdvisors();
+	// Build Advisors for all AspectJ aspects in the bean factory.
+	if (this.aspectJAdvisorsBuilder != null) {
+		//查找Class的Aspect注解入口
+		advisors.addAll(this.aspectJAdvisorsBuilder.buildAspectJAdvisors());
+	}
+	return advisors;
+}
+```
+## BeanFactoryAspectJAdvisorsBuilder类如下图
+![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/BeanFactoryAspectJAdvisorsBuilder.png)
 ```java
 
 private static class DynamicAdvisedInterceptor implements MethodInterceptor, Serializable {
