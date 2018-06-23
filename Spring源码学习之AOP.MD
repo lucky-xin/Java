@@ -1,5 +1,5 @@
 
-SpringBoot开启AOP配置如下图添加*@EnableAspectJAutoProxy*注解，会自动完成相关配置
+SpringBoot开启AOP配置如下图添加`@EnableAspectJAutoProxy`注解，会自动完成相关配置
 ```java
 @SpringBootApplication(scanBasePackages = "com.xin.springboot")
 @ServletComponentScan//扫描监听类
@@ -19,7 +19,7 @@ public class XinSpringbootApplication extends SpringBootServletInitializer {
 }
 
 ```
-注解*@EnableAspectJAutoProxy*功能如下
+注解`@EnableAspectJAutoProxy`功能如下
 ```java
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
