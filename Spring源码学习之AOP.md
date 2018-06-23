@@ -1,6 +1,6 @@
-**Spring源码学习之AOP
+# Spring源码学习之AOP
 
-##SpringBoot开启AOP配置如下图添加`@EnableAspectJAutoProxy`注解，会自动完成相关配置
+## SpringBoot开启AOP配置如下图添加`@EnableAspectJAutoProxy`注解，会自动完成相关配置
 ```java
 @SpringBootApplication(scanBasePackages = "com.xin.springboot")
 @ServletComponentScan//扫描监听类
@@ -20,7 +20,7 @@ public class XinSpringbootApplication extends SpringBootServletInitializer {
 }
 
 ```
-##注解`@EnableAspectJAutoProxy`功能如下
+## 注解`@EnableAspectJAutoProxy`功能如下
 ```java
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -45,7 +45,7 @@ public @interface EnableAspectJAutoProxy {
 }
 ```
 
--注解@EnableAspectJAutoProxy使用AspectJAutoProxyRegistrar注册AnnotationAwareAspectJAutoProxyCreator到BeanDefinitionRegistry之中。BeanDefinitionRegistry为DefaultListableBeanFactory
+- 注解@EnableAspectJAutoProxy使用AspectJAutoProxyRegistrar注册AnnotationAwareAspectJAutoProxyCreator到BeanDefinitionRegistry之中。BeanDefinitionRegistry为DefaultListableBeanFactory
 AspectJAutoProxyRegistrar类如下
 ```java
 /**
@@ -86,7 +86,7 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 
 }
 ```
--在AopConfigUtils之中完成注册如下
+- 在AopConfigUtils之中完成注册如下
 ```java
 @Nullable
 public static BeanDefinition registerAspectJAnnotationAutoProxyCreatorIfNecessary(BeanDefinitionRegistry registry) {
@@ -127,9 +127,13 @@ private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, Bean
 }
 
 ```
--注册AnnotationAwareAspectJAutoProxyCreator之后，在获取bean对象时是使用AnnotationAwareAspectJAutoProxyCreator来创建代理对象
+- 注册AnnotationAwareAspectJAutoProxyCreator之后，在获取bean对象时是使用AnnotationAwareAspectJAutoProxyCreator来创建代理对象
 AnnotationAwareAspectJAutoProxyCreator类结构图如下
  ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AnnotationAwareAspectJAutoProxyCreator.png)
+ 
+ 
+ 
+ AnnotationAwareAspectJAutoProxyCreator实现了InstantiationAwareBeanPostProcessor接口，在创建对象时会查找InstantiationAwareBeanPostProcessor并使用InstantiationAwareBeanPostProcessor来创建代理对象
 
 ```java
 
