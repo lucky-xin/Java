@@ -45,8 +45,7 @@ public @interface EnableAspectJAutoProxy {
 }
 ```
 
-## 注解@EnableAspectJAutoProxy使用AspectJAutoProxyRegistrar注册AnnotationAwareAspectJAutoProxyCreator到BeanDefinitionRegistry之中。BeanDefinitionRegistry为DefaultListableBeanFactory
-AspectJAutoProxyRegistrar类如下
+## 注解@EnableAspectJAutoProxy使用AspectJAutoProxyRegistrar注册AnnotationAwareAspectJAutoProxyCreator到BeanDefinitionRegistry之中。BeanDefinitionRegistry为DefaultListableBeanFactory,AspectJAutoProxyRegistrar类如下
 ```java
 /**
  * Registers an {@link org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator
@@ -130,8 +129,7 @@ private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, Bean
 ## 注册AnnotationAwareAspectJAutoProxyCreator之后，在获取bean对象时是使用AnnotationAwareAspectJAutoProxyCreator来创建代理对象
 AnnotationAwareAspectJAutoProxyCreator类结构图如下
  ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AnnotationAwareAspectJAutoProxyCreator.png)
-## AnnotationAwareAspectJAutoProxyCreator实现了InstantiationAwareBeanPostProcessor接口，在创建对象时会查找InstantiationAwareBeanPostProcessor并使用InstantiationAwareBeanPostProcessor来创建代理对象
-具体实现在AbstractAutowireCapableBeanFactory之中，看代码会看到
+## AnnotationAwareAspectJAutoProxyCreator实现了InstantiationAwareBeanPostProcessor接口，在创建对象时会查找InstantiationAwareBeanPostProcessor并使用InstantiationAwareBeanPostProcessor来创建代理对象,具体实现在AbstractAutowireCapableBeanFactory之中，看代码会看到
 ```java
 /**
  * Central method of this class: creates a bean instance,
@@ -166,9 +164,9 @@ protected Object createBean(String beanName, RootBeanDefinition mbd, @Nullable O
 	}
 
 	try {
-		// Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
-		//遍历所有BeanPostProcessor找到InstantiationAwareBeanPostProcessor实现类来创建代理对象
-		//如果成功创建了代理对象，则返回该代理对象，不在往下执行
+		### // Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
+		### //遍历所有BeanPostProcessor找到InstantiationAwareBeanPostProcessor实现类来创建代理对象
+		### //如果成功创建了代理对象，则返回该代理对象，不在往下执行
 		Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
 		if (bean != null) {
 			return bean;
