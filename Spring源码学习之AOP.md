@@ -45,7 +45,7 @@ public @interface EnableAspectJAutoProxy {
 }
 ```
 
-## 注解@EnableAspectJAutoProxy使用AspectJAutoProxyRegistrar注册AnnotationAwareAspectJAutoProxyCreator到BeanDefinitionRegistry之中。BeanDefinitionRegistry为DefaultListableBeanFactory,AspectJAutoProxyRegistrar类如下
+## 注解`@EnableAspectJAutoProxy`使用`AspectJAutoProxyRegistrar`注册`AnnotationAwareAspectJAutoProxyCreator`到`BeanDefinitionRegistry`之中。`BeanDefinitionRegistry`为`DefaultListableBeanFactory,AspectJAutoProxyRegistrar`类如下
 ```java
 /**
  * Registers an {@link org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator
@@ -85,7 +85,7 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 
 }
 ```
-## 在AopConfigUtils之中完成注册如下
+## 在`AopConfigUtils`之中完成注册如下
 ```java
 @Nullable
 public static BeanDefinition registerAspectJAnnotationAutoProxyCreatorIfNecessary(BeanDefinitionRegistry registry) {
@@ -126,10 +126,12 @@ private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, Bean
 }
 
 ```
-## 注册AnnotationAwareAspectJAutoProxyCreator之后，在获取bean对象时是使用AnnotationAwareAspectJAutoProxyCreator来创建代理对象
-AnnotationAwareAspectJAutoProxyCreator类结构图如下
+## 注册`AnnotationAwareAspectJAutoProxyCreator`之后，在获取bean对象时是使用`AnnotationAwareAspectJAutoProxyCreator`来创建代理对象
+`AnnotationAwareAspectJAutoProxyCreator`类结构图如下
  ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AnnotationAwareAspectJAutoProxyCreator.png)
-## AnnotationAwareAspectJAutoProxyCreator实现了InstantiationAwareBeanPostProcessor接口，在创建对象时会查找InstantiationAwareBeanPostProcessor并使用InstantiationAwareBeanPostProcessor来创建代理对象,如果成功创建了代理对象则直接返回该代理对象，否则根据BeanDefinition定义来创建对象，具体实现在AbstractAutowireCapableBeanFactory之中，看代码会看到
+## `AnnotationAwareAspectJAutoProxyCreator`实现了`InstantiationAwareBeanPostProcessor`接口，在创建对象时会查找
+##  `InstantiationAwareBeanPostProcessor`并使用InstantiationAwareBeanPostProcessor` 来创建代理对象,如果成功创建了代理对象则直接
+## 返回该代理对象，否则根据`BeanDefinition`定义来创建对象，具体实现在`AbstractAutowireCapableBeanFactory`之中，看代码会看到
 ```java
 /**
  * Central method of this class: creates a bean instance,
