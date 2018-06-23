@@ -1,4 +1,4 @@
-<pre><code>
+```java
 
 private static class DynamicAdvisedInterceptor implements MethodInterceptor, Serializable {
 
@@ -69,4 +69,4 @@ private static class DynamicAdvisedInterceptor implements MethodInterceptor, Ser
 			return this.advised.hashCode();
 		}
 	}
-</code></pre>
+```
