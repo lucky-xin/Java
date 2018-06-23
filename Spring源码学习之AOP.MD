@@ -1,3 +1,4 @@
+#Spring源码学习之AOP
 
 ##SpringBoot开启AOP配置如下图添加`@EnableAspectJAutoProxy`注解，会自动完成相关配置
 ```java
@@ -86,7 +87,6 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 }
 ```
 -在AopConfigUtils之中完成注册如下
-
 ```java
 @Nullable
 public static BeanDefinition registerAspectJAnnotationAutoProxyCreatorIfNecessary(BeanDefinitionRegistry registry) {
@@ -127,36 +127,9 @@ private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, Bean
 }
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+-注册AnnotationAwareAspectJAutoProxyCreator之后，在获取bean对象时是使用AnnotationAwareAspectJAutoProxyCreator来创建代理对象
+AnnotationAwareAspectJAutoProxyCreator类结构图如下
+ ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AnnotationAwareAspectJAutoProxyCreator.png)
 
 ```java
 
