@@ -703,7 +703,72 @@ public class DefaultAdvisorAdapterRegistry implements AdvisorAdapterRegistry, Se
 
 }
 ```
+## 使用ProxyFactory来创建代理对象
+```
+/**
+ * Create a new proxy according to the settings in this factory.
+ * <p>Can be called repeatedly. Effect will vary if we've added
+ * or removed interfaces. Can add and remove interceptors.
+ * <p>Uses the given class loader (if necessary for proxy creation).
+ * @param classLoader the class loader to create the proxy with
+ * (or {@code null} for the low-level proxy facility's default)
+ * @return the proxy object
+ */
+public Object getProxy(@Nullable ClassLoader classLoader) {
+	return createAopProxy().getProxy(classLoader);
+}
+```
+## 在ProxyFactory超类ProxyCreatorSupport之中。最后调用DefaultAopProxyFactory创建代理对象
+```
+/**
+ * Subclasses should call this to get a new AOP proxy. They should <b>not</b>
+ * create an AOP proxy with {@code this} as an argument.
+ */
+protected final synchronized AopProxy createAopProxy() {
+	if (!this.active) {
+		activate();
+	}
+	//getAopProxyFactory方法返回DefaultAopProxyFactory
+	return getAopProxyFactory().createAopProxy(this);
+}
 
+```
+
+## DefaultAopProxyFactory类如下。如果Class实现了接口则JdkDynamicAopProxy类生成代理对象，否则使用ObjenesisCglibAopProxy创建代理对象
+
+```
+public class DefaultAopProxyFactory implements AopProxyFactory, Serializable {
+
+	@Override
+	public AopProxy createAopProxy(AdvisedSupport config) throws AopConfigException {
+		if (config.isOptimize() || config.isProxyTargetClass() || hasNoUserSuppliedProxyInterfaces(config)) {
+			Class<?> targetClass = config.getTargetClass();
+			if (targetClass == null) {
+				throw new AopConfigException("TargetSource cannot determine target class: " +
+						"Either an interface or a target is required for proxy creation.");
+			}
+			if (targetClass.isInterface() || Proxy.isProxyClass(targetClass)) {
+				return new JdkDynamicAopProxy(config);
+			}
+			return new ObjenesisCglibAopProxy(config);
+		}
+		else {
+			return new JdkDynamicAopProxy(config);
+		}
+	}
+
+	/**
+	 * Determine whether the supplied {@link AdvisedSupport} has only the
+	 * {@link org.springframework.aop.SpringProxy} interface specified
+	 * (or no proxy interfaces specified at all).
+	 */
+	private boolean hasNoUserSuppliedProxyInterfaces(AdvisedSupport config) {
+		Class<?>[] ifcs = config.getProxiedInterfaces();
+		return (ifcs.length == 0 || (ifcs.length == 1 && SpringProxy.class.isAssignableFrom(ifcs[0])));
+	}
+
+}
+```
 
 ```java
 
