@@ -129,7 +129,7 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 ```
 **注册AnnotationAwareAspectJAutoProxyCreator之后，在获取bean对象时是使用AnnotationAwareAspectJAutoProxyCreator来创建代理对象
 
-![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AnnotationAwareAspectJ.png)
+ ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AnnotationAwareAspectJAutoProxyCreator.png)
 
 
 
