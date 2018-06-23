@@ -1,3 +1,49 @@
+
+SpringBoot开启AOP配置如下图添加*@EnableAspectJAutoProxy*注解，会自动完成相关配置
+```java
+@SpringBootApplication(scanBasePackages = "com.xin.springboot")
+@ServletComponentScan//扫描监听类
+@EnableAspectJAutoProxy
+public class XinSpringbootApplication extends SpringBootServletInitializer {
+
+    public static void main(String[] args) {
+
+        SpringApplication.run(XinSpringbootApplication.class, args);
+    }
+
+    @Override
+    protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
+        builder.sources(XinSpringbootApplication.class);
+        return super.configure(builder);
+    }
+}
+
+```
+注解*@EnableAspectJAutoProxy*功能如下
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Import(AspectJAutoProxyRegistrar.class)*//注册AnnotationAwareAspectJAutoProxyCreator到BeanDefinitionRegistry之中。*
+public @interface EnableAspectJAutoProxy {
+
+	/**
+	 * Indicate whether subclass-based (CGLIB) proxies are to be created as opposed
+	 * to standard Java interface-based proxies. The default is {@code false}.
+	 */
+	boolean proxyTargetClass() default false;
+
+	/**
+	 * Indicate that the proxy should be exposed by the AOP framework as a {@code ThreadLocal}
+	 * for retrieval via the {@link org.springframework.aop.framework.AopContext} class.
+	 * Off by default, i.e. no guarantees that {@code AopContext} access will work.
+	 * @since 4.3.1
+	 */
+	boolean exposeProxy() default false;
+
+}
+```
+
 ```java
 
 private static class DynamicAdvisedInterceptor implements MethodInterceptor, Serializable {
