@@ -1,5 +1,5 @@
 
-**SpringBoot开启AOP配置如下图添加`@EnableAspectJAutoProxy`注解，会自动完成相关配置
+##SpringBoot开启AOP配置如下图添加`@EnableAspectJAutoProxy`注解，会自动完成相关配置
 ```java
 @SpringBootApplication(scanBasePackages = "com.xin.springboot")
 @ServletComponentScan//扫描监听类
@@ -19,7 +19,7 @@ public class XinSpringbootApplication extends SpringBootServletInitializer {
 }
 
 ```
-**注解`@EnableAspectJAutoProxy`功能如下
+##注解`@EnableAspectJAutoProxy`功能如下
 ```java
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -44,7 +44,7 @@ public @interface EnableAspectJAutoProxy {
 }
 ```
 
-**注解@EnableAspectJAutoProxy使用AspectJAutoProxyRegistrar注册AnnotationAwareAspectJAutoProxyCreator到BeanDefinitionRegistry之中。BeanDefinitionRegistry为DefaultListableBeanFactory
+-注解@EnableAspectJAutoProxy使用AspectJAutoProxyRegistrar注册AnnotationAwareAspectJAutoProxyCreator到BeanDefinitionRegistry之中。BeanDefinitionRegistry为DefaultListableBeanFactory
 AspectJAutoProxyRegistrar类如下
 ```java
 /**
@@ -85,50 +85,50 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 
 }
 ```
-**在AopConfigUtils之中完成注册如下
+-在AopConfigUtils之中完成注册如下
 
 ```java
-	@Nullable
-	public static BeanDefinition registerAspectJAnnotationAutoProxyCreatorIfNecessary(BeanDefinitionRegistry registry) {
-		return registerAspectJAnnotationAutoProxyCreatorIfNecessary(registry, null);
-	}
+@Nullable
+public static BeanDefinition registerAspectJAnnotationAutoProxyCreatorIfNecessary(BeanDefinitionRegistry registry) {
+	return registerAspectJAnnotationAutoProxyCreatorIfNecessary(registry, null);
+}
 
-	@Nullable
-	public static BeanDefinition registerAspectJAnnotationAutoProxyCreatorIfNecessary(BeanDefinitionRegistry registry,
-			@Nullable Object source) {
+@Nullable
+public static BeanDefinition registerAspectJAnnotationAutoProxyCreatorIfNecessary(BeanDefinitionRegistry registry,
+		@Nullable Object source) {
 
-		return registerOrEscalateApcAsRequired(AnnotationAwareAspectJAutoProxyCreator.class, registry, source);
-	}
-	
-	@Nullable
-	private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, BeanDefinitionRegistry registry,
-			@Nullable Object source) {
+	return registerOrEscalateApcAsRequired(AnnotationAwareAspectJAutoProxyCreator.class, registry, source);
+}
 
-		Assert.notNull(registry, "BeanDefinitionRegistry must not be null");
+@Nullable
+private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, BeanDefinitionRegistry registry,
+		@Nullable Object source) {
 
-		if (registry.containsBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME)) {
-			BeanDefinition apcDefinition = registry.getBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME);
-			if (!cls.getName().equals(apcDefinition.getBeanClassName())) {
-				int currentPriority = findPriorityForClass(apcDefinition.getBeanClassName());
-				int requiredPriority = findPriorityForClass(cls);
-				if (currentPriority < requiredPriority) {
-					apcDefinition.setBeanClassName(cls.getName());
-				}
+	Assert.notNull(registry, "BeanDefinitionRegistry must not be null");
+
+	if (registry.containsBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME)) {
+		BeanDefinition apcDefinition = registry.getBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME);
+		if (!cls.getName().equals(apcDefinition.getBeanClassName())) {
+			int currentPriority = findPriorityForClass(apcDefinition.getBeanClassName());
+			int requiredPriority = findPriorityForClass(cls);
+			if (currentPriority < requiredPriority) {
+				apcDefinition.setBeanClassName(cls.getName());
 			}
-			return null;
 		}
-
-		RootBeanDefinition beanDefinition = new RootBeanDefinition(cls);
-		beanDefinition.setSource(source);
-		beanDefinition.getPropertyValues().add("order", Ordered.HIGHEST_PRECEDENCE);
-		beanDefinition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
-		registry.registerBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME, beanDefinition);
-		return beanDefinition;
+		return null;
 	}
+
+	RootBeanDefinition beanDefinition = new RootBeanDefinition(cls);
+	beanDefinition.setSource(source);
+	beanDefinition.getPropertyValues().add("order", Ordered.HIGHEST_PRECEDENCE);
+	beanDefinition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+	registry.registerBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME, beanDefinition);
+	return beanDefinition;
+}
 
 ```
-**注册AnnotationAwareAspectJAutoProxyCreator之后，在获取bean对象时是使用AnnotationAwareAspectJAutoProxyCreator来创建代理对象
-
+-注册AnnotationAwareAspectJAutoProxyCreator之后，在获取bean对象时是使用AnnotationAwareAspectJAutoProxyCreator来创建代理对象
+AnnotationAwareAspectJAutoProxyCreator类结构图如下
  ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AnnotationAwareAspectJAutoProxyCreator.png)
 
 
