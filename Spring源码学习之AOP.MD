@@ -127,9 +127,7 @@ private static BeanDefinition registerOrEscalateApcAsRequired(Class<?> cls, Bean
 }
 
 ```
--注册AnnotationAwareAspectJAutoProxyCreator之后，在获取bean对象时是使用AnnotationAwareAspectJAutoProxyCreator来创建代理对象
-AnnotationAwareAspectJAutoProxyCreator类结构图如下
- ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AnnotationAwareAspectJAutoProxyCreator.png)
+
 
 
 
