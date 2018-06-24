@@ -92,7 +92,8 @@ public class AopBean {
 ### Controller类
 ```java
  @RequestMapping(value = "/hello/{id}", method = RequestMethod.GET)
-    public String sayHello(HttpServletRequest request, @PathVariable("id") Integer id, @RequestParam(value = "name", required = false, defaultValue = "luchaoxin") String userName) {
+    public String sayHello(HttpServletRequest request, @PathVariable("id") Integer id,
+    @RequestParam(value = "name", required = false, defaultValue = "luchaoxin") String userName) {
         //localhost:9080/luchaoxin/xin/hello/122?name=lcx
         System.out.println("注入aopBean：" + aopBean.getClass());
         aopBean.throwException();
@@ -100,7 +101,7 @@ public class AopBean {
         return "Hello,Spring Boot!" + " age:" + age + "---- id:" + id + "---name:" + userName;
     }
 ```
-## 调用对象方法执行如下图 ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AOP.png)
+## 调用对象方法执行如下图,方法执行链为先调用Around注解方法，然后调用Before注解方法，然后退出Around注解方法调用AfterReturning注解方法，如果Around方法没有返回值，则AfterReturning方法获取不到返回值，如果Around处理了异常，则AfterThrowing获取不到异常 ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AOP.png)
 
 
 ## SpringBoot开启AOP配置如下图添加`@EnableAspectJAutoProxy`注解，会自动完成相关配置
