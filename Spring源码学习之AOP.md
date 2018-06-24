@@ -94,7 +94,6 @@ public class AopBean {
  @RequestMapping(value = "/hello/{id}", method = RequestMethod.GET)
     public String sayHello(HttpServletRequest request, @PathVariable("id") Integer id,
     @RequestParam(value = "name", required = false, defaultValue = "luchaoxin") String userName) {
-        //localhost:9080/luchaoxin/xin/hello/122?name=lcx
         System.out.println("注入aopBean：" + aopBean.getClass());
         aopBean.throwException();
         System.out.println(aopBean.getName("lcx", 18));
