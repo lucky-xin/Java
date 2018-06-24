@@ -1,6 +1,107 @@
 # Spring源码学习之AOP
 
-## AOP 使用配置
+## AOP 使用
+
+### AOP配置如下
+```java
+@Aspect
+@Configuration
+public class AopConfig {
+
+    protected static org.slf4j.Logger logger = LoggerFactory.getLogger(AopConfig.class);
+
+    @Pointcut("execution(public * com.xin.springboot.learn.model.AopBean.*(..))")
+    public void log() {
+
+    }
+
+    @Before("log()")
+    public void doBefore(JoinPoint joinPoint) throws Throwable {
+        System.out.println("Begin execute Before method...");
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        HttpServletRequest request = attributes.getRequest();
+        // 记录下请求内容
+        logger.info("URL : " + request.getRequestURL().toString());
+        logger.info("HTTP_METHOD : " + request.getMethod());
+        logger.info("IP : " + request.getRemoteAddr());
+        logger.info("CLASS_METHOD : " + joinPoint.getSignature().getDeclaringTypeName() + "." + joinPoint.getSignature().getName());
+        logger.info("ARGS : " + Arrays.toString(joinPoint.getArgs()));
+    }
+
+    @AfterReturning(pointcut = "log()", returning = "resVal")
+    public void doAfter(Object resVal) {
+        System.out.println("Begin execute AfterReturning method...");
+        System.out.println("After return : return value is " + resVal);
+    }
+
+    @Around("log()")
+    public Object around(ProceedingJoinPoint joinPoint) {
+        System.out.println("Begin execute Around Method...");
+        //获取开始执行的时间
+        long startTime = System.currentTimeMillis();
+
+        // 定义返回对象、得到方法需要的参数
+        Object obj = null;
+        try {
+            obj = joinPoint.proceed();
+        } catch (Throwable e) {
+            logger.error("=====>统计某方法执行耗时环绕通知出错" + e.getMessage());
+        }
+        // 获取执行结束的时间
+        long endTime = System.currentTimeMillis();
+        // 打印耗时的信息
+        logger.info("=====>处理本次请求共耗时：{} ms", endTime - startTime);
+        System.out.println("Exist Around Method...");
+        return obj;
+    }
+
+    @AfterThrowing(pointcut = "log()", throwing = "ex")
+    public void doRecoveryActions(Throwable ex) {
+        System.out.println("Begin execute AfterThrowing Method...");
+        if (null != ex) {
+            System.out.println("打印日志记录异常,异常信息：" + ex.getMessage());
+        }
+        System.out.println("Exist AfterThrowing Method...");
+    }
+
+
+}
+```
+
+### 测试AOP类
+```java
+package com.xin.springboot.learn.model;
+
+import org.springframework.stereotype.Component;
+
+@Component
+public class AopBean {
+
+    public String getName(String name, Integer age) {
+        System.out.println(name);
+        return "Hello," + name;
+    }
+
+    public void throwException() {
+        throw new RuntimeException("发生了异常");
+    }
+
+}
+```
+
+### Controller类
+```java
+ @RequestMapping(value = "/hello/{id}", method = RequestMethod.GET)
+    public String sayHello(HttpServletRequest request, @PathVariable("id") Integer id, @RequestParam(value = "name", required = false, defaultValue = "luchaoxin") String userName) {
+        //localhost:9080/luchaoxin/xin/hello/122?name=lcx
+        System.out.println("注入aopBean：" + aopBean.getClass());
+        aopBean.throwException();
+        System.out.println(aopBean.getName("lcx", 18));
+        return "Hello,Spring Boot!" + " age:" + age + "---- id:" + id + "---name:" + userName;
+    }
+```
+## 调用对象方法执行如下图 ![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AOP.png)
+
 
 ## SpringBoot开启AOP配置如下图添加`@EnableAspectJAutoProxy`注解，会自动完成相关配置
 ```java
