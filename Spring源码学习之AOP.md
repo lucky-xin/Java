@@ -72,7 +72,8 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 		AopConfigUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary(registry);
 
 		AnnotationAttributes enableAspectJAutoProxy =
-				AnnotationConfigUtils.attributesFor(importingClassMetadata, EnableAspectJAutoProxy.class);
+				AnnotationConfigUtils.attributesFor(importingClassMetadata, 
+				EnableAspectJAutoProxy.class);
 		if (enableAspectJAutoProxy != null) {
 			if (enableAspectJAutoProxy.getBoolean("proxyTargetClass")) {
 				AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry);
@@ -312,8 +313,12 @@ protected Object[] getAdvicesAndAdvisorsForBean(
  * @see #extendAdvisors
  */
 protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
-	List<Advisor> candidateAdvisors = findCandidateAdvisors();//AnnotationAwareAspectJAutoProxyCreator重写了findCandidateAdvisors方法
-	List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);//只获取该bean的Advisor
+	//AnnotationAwareAspectJAutoProxyCreator重写了findCandidateAdvisors方法
+	List<Advisor> candidateAdvisors = findCandidateAdvisors();
+	
+	//只获取该bean的Advisor
+	List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);
+	
 	extendAdvisors(eligibleAdvisors);
 	if (!eligibleAdvisors.isEmpty()) {
 		eligibleAdvisors = sortAdvisors(eligibleAdvisors);
@@ -321,6 +326,101 @@ protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName
 	return eligibleAdvisors;
 }
 ````
+## 先看根据Class获取匹配的Advisor
+```java
+protected List<Advisor> findAdvisorsThatCanApply(
+		List<Advisor> candidateAdvisors, Class<?> beanClass, String beanName) {
+
+	ProxyCreationContext.setCurrentProxiedBeanName(beanName);
+	try {
+		return AopUtils.findAdvisorsThatCanApply(candidateAdvisors, beanClass);
+	}
+	finally {
+		ProxyCreationContext.setCurrentProxiedBeanName(null);
+	}
+}
+//在 AopUtils的findAdvisorsThatCanApply方法之中
+public static List<Advisor> findAdvisorsThatCanApply(List<Advisor> candidateAdvisors, Class<?> clazz) {
+	if (candidateAdvisors.isEmpty()) {
+		return candidateAdvisors;
+	}
+	List<Advisor> eligibleAdvisors = new LinkedList<>();
+	for (Advisor candidate : candidateAdvisors) {
+		//成员变量Advisor
+		if (candidate instanceof IntroductionAdvisor && canApply(candidate, clazz)) {
+			eligibleAdvisors.add(candidate);
+		}
+	}
+	boolean hasIntroductions = !eligibleAdvisors.isEmpty();
+	for (Advisor candidate : candidateAdvisors) {
+		if (candidate instanceof IntroductionAdvisor) {
+			// already processed
+			continue;
+		}
+		// 方法Advisor
+		if (canApply(candidate, clazz, hasIntroductions)) {
+			eligibleAdvisors.add(candidate);
+		}
+	}
+	return eligibleAdvisors;
+}
+public static boolean canApply(Advisor advisor, Class<?> targetClass, boolean hasIntroductions) {
+	// 成员变量Advisor判断
+	if (advisor instanceof IntroductionAdvisor) {
+		return ((IntroductionAdvisor) advisor).getClassFilter().matches(targetClass);
+	}
+	// 方法Advisor判断
+	else if (advisor instanceof PointcutAdvisor) {
+		//PointcutAdvisor为InstantiationModelAwarePointcutAdvisorImpl
+		PointcutAdvisor pca = (PointcutAdvisor) advisor;
+		return canApply(pca.getPointcut(), targetClass, hasIntroductions);
+	}
+	else {
+		// It doesn't have a pointcut so we assume it applies.
+		return true;
+	}
+}
+```
+## 最后分派到方法canApply该Class是否匹配该Advisor,根据注解Pointcut的值来判断是否匹配
+```java
+public static boolean canApply(Pointcut pc, Class<?> targetClass, boolean hasIntroductions) {
+	Assert.notNull(pc, "Pointcut must not be null");
+	if (!pc.getClassFilter().matches(targetClass)) {
+		return false;
+	}
+
+	MethodMatcher methodMatcher = pc.getMethodMatcher();
+	if (methodMatcher == MethodMatcher.TRUE) {
+		// No need to iterate the methods if we're matching any method anyway...
+		return true;
+	}
+
+	IntroductionAwareMethodMatcher introductionAwareMethodMatcher = null;
+	if (methodMatcher instanceof IntroductionAwareMethodMatcher) {
+		introductionAwareMethodMatcher = (IntroductionAwareMethodMatcher) methodMatcher;
+	}
+
+	Set<Class<?>> classes = new LinkedHashSet<>();
+	if (!Proxy.isProxyClass(targetClass)) {
+		classes.add(ClassUtils.getUserClass(targetClass));
+	}
+	classes.addAll(ClassUtils.getAllInterfacesForClassAsSet(targetClass));
+
+	for (Class<?> clazz : classes) {
+		Method[] methods = ReflectionUtils.getAllDeclaredMethods(clazz);
+		for (Method method : methods) {
+			if (introductionAwareMethodMatcher != null ?
+					introductionAwareMethodMatcher.matches(method, targetClass, hasIntroductions) :
+					methodMatcher.matches(method, targetClass)) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+```
+
 ## AnnotationAwareAspectJAutoProxyCreator重写了findCandidateAdvisors方法具体实现看如下代码aspectJAdvisorsBuilder为BeanFactoryAspectJAdvisorsBuilder
 ```java
 @Override
@@ -389,7 +489,8 @@ public List<Advisor> buildAspectJAdvisors() {
 					// Per target or per this.
 					if (this.beanFactory.isSingleton(beanName)) {
 						throw new IllegalArgumentException("Bean with name '" + beanName +
-								"' is a singleton, but aspect instantiation model is not singleton");
+								"' is a singleton,
+								but aspect instantiation model is not singleton");
 					}
 					MetadataAwareAspectInstanceFactory factory =
 							new PrototypeAspectInstanceFactory(this.beanFactory, beanName);
@@ -504,7 +605,8 @@ private AspectJExpressionPointcut getPointcut(Method candidateAdviceMethod, Clas
 @Nullable
 protected static AspectJAnnotation<?> findAspectJAnnotationOnMethod(Method method) {
 	Class<?>[] classesToLookFor = new Class<?>[] {
-			Before.class, Around.class, After.class, AfterReturning.class, AfterThrowing.class, Pointcut.class};
+			Before.class, Around.class, After.class, AfterReturning.class, 
+			AfterThrowing.class, Pointcut.class};
 	for (Class<?> c : classesToLookFor) {
 		AspectJAnnotation<?> foundAnnotation = findAnnotation(method, (Class<Annotation>) c);
 		if (foundAnnotation != null) {
@@ -551,8 +653,7 @@ private Advisor getDeclareParentsAdvisor(Field introductionField) {
 			introductionField.getType(), declareParents.value(), declareParents.defaultImpl());
 }
 ```
-## 根据该Class生成Advisor，存入list之中。此Advisor为InstantiationModelAwarePointcutAdvisorImpl
-获取Advisor之后返回到AnnotationAwareAspectJAutoProxyCreator的超类AbstractAutoProxyCreator类的postProcessBeforeInstantiation方法，调用createProxy方法创建代理对象
+## 根据该Class生成Advisor，存入list之中。此Advisor为InstantiationModelAwarePointcutAdvisorImpl获取Advisor之后返回到AnnotationAwareAspectJAutoProxyCreator的超类AbstractAutoProxyCreator类的postProcessBeforeInstantiation方法，调用createProxy方法创建代理对象
 ```
 /**
  * Create an AOP proxy for the given bean.
@@ -569,7 +670,8 @@ protected Object createProxy(Class<?> beanClass, @Nullable String beanName,
 		@Nullable Object[] specificInterceptors, TargetSource targetSource) {
 
 	if (this.beanFactory instanceof ConfigurableListableBeanFactory) {
-		AutoProxyUtils.exposeTargetClass((ConfigurableListableBeanFactory) this.beanFactory, beanName, beanClass);
+		AutoProxyUtils.exposeTargetClass((ConfigurableListableBeanFactory) this.beanFactory, 
+		beanName, beanClass);
 	}
 
 	ProxyFactory proxyFactory = new ProxyFactory();
