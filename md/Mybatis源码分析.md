@@ -162,7 +162,7 @@ public class ManagedTransactionFactory implements TransactionFactory {
   }
 }
 ```
-### 创建ManagedTransaction对象，ManagedTransaction封装了javax.sql.DataSource,java.sql.Connection对象
+### newTransaction方法创建了ManagedTransaction对象，ManagedTransaction封装了javax.sql.DataSource,java.sql.Connection对象
 ```java
 package org.apache.ibatis.transaction.managed;
 
@@ -240,3 +240,388 @@ public class ManagedTransaction implements Transaction {
 
 }
 ```
+### 创建了ManagedTransaction对象之后`Executor executor = configuration.newExecutor(tx, execType)`创建sql执行器，为SimpleExecutor
+```java
+public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
+    executorType = executorType == null ? defaultExecutorType : executorType;
+    executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
+    Executor executor;
+    if (ExecutorType.BATCH == executorType) {
+      executor = new BatchExecutor(this, transaction);
+    } else if (ExecutorType.REUSE == executorType) {
+      executor = new ReuseExecutor(this, transaction);
+    } else {
+      executor = new SimpleExecutor(this, transaction);
+    }
+    if (cacheEnabled) {
+      executor = new CachingExecutor(executor);
+    }
+    executor = (Executor) interceptorChain.pluginAll(executor);
+    return executor;
+  }
+```
+
+### 
+```java
+public class SimpleExecutor extends BaseExecutor {
+    
+      public SimpleExecutor(Configuration configuration, Transaction transaction) {
+        super(configuration, transaction);
+      }
+    
+      @Override
+      public int doUpdate(MappedStatement ms, Object parameter) throws SQLException {
+        Statement stmt = null;
+        try {
+          Configuration configuration = ms.getConfiguration();
+          StatementHandler handler = configuration.newStatementHandler(this, ms, parameter, RowBounds.DEFAULT, null, null);
+          stmt = prepareStatement(handler, ms.getStatementLog());
+          return handler.update(stmt);
+        } finally {
+          closeStatement(stmt);
+        }
+      }
+    
+      @Override
+      public <E> List<E> doQuery(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) throws SQLException {
+        Statement stmt = null;
+        try {
+          Configuration configuration = ms.getConfiguration();
+          StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler, boundSql);
+          stmt = prepareStatement(handler, ms.getStatementLog());
+          return handler.<E>query(stmt, resultHandler);
+        } finally {
+          closeStatement(stmt);
+        }
+      }
+    
+      @Override
+      protected <E> Cursor<E> doQueryCursor(MappedStatement ms, Object parameter, RowBounds rowBounds, BoundSql boundSql) throws SQLException {
+        Configuration configuration = ms.getConfiguration();
+        StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, null, boundSql);
+        Statement stmt = prepareStatement(handler, ms.getStatementLog());
+        return handler.<E>queryCursor(stmt);
+      }
+    
+      @Override
+      public List<BatchResult> doFlushStatements(boolean isRollback) throws SQLException {
+        return Collections.emptyList();
+      }
+    
+      private Statement prepareStatement(StatementHandler handler, Log statementLog) throws SQLException {
+        Statement stmt;
+        Connection connection = getConnection(statementLog);
+        stmt = handler.prepare(connection, transaction.getTimeout());
+        handler.parameterize(stmt);
+        return stmt;
+      }
+}
+```
+
+### 返回的SqlSession为DefaultSqlSession源码如下
+```java
+public class DefaultSqlSession implements SqlSession {
+
+  private final Configuration configuration;
+  private final Executor executor;
+
+  private final boolean autoCommit;
+  private boolean dirty;
+  private List<Cursor<?>> cursorList;
+
+  public DefaultSqlSession(Configuration configuration, Executor executor, boolean autoCommit) {
+    this.configuration = configuration;
+    this.executor = executor;
+    this.dirty = false;
+    this.autoCommit = autoCommit;
+  }
+
+  public DefaultSqlSession(Configuration configuration, Executor executor) {
+    this(configuration, executor, false);
+  }
+
+  @Override
+  public <T> T selectOne(String statement) {
+    return this.<T>selectOne(statement, null);
+  }
+
+  @Override
+  public <T> T selectOne(String statement, Object parameter) {
+    // Popular vote was to return null on 0 results and throw exception on too many.
+    List<T> list = this.<T>selectList(statement, parameter);
+    if (list.size() == 1) {
+      return list.get(0);
+    } else if (list.size() > 1) {
+      throw new TooManyResultsException("Expected one result (or null) to be returned by selectOne(), but found: " + list.size());
+    } else {
+      return null;
+    }
+  }
+
+  @Override
+  public <K, V> Map<K, V> selectMap(String statement, String mapKey) {
+    return this.selectMap(statement, null, mapKey, RowBounds.DEFAULT);
+  }
+
+  @Override
+  public <K, V> Map<K, V> selectMap(String statement, Object parameter, String mapKey) {
+    return this.selectMap(statement, parameter, mapKey, RowBounds.DEFAULT);
+  }
+
+  @Override
+  public <K, V> Map<K, V> selectMap(String statement, Object parameter, String mapKey, RowBounds rowBounds) {
+    final List<? extends V> list = selectList(statement, parameter, rowBounds);
+    final DefaultMapResultHandler<K, V> mapResultHandler = new DefaultMapResultHandler<K, V>(mapKey,
+        configuration.getObjectFactory(), configuration.getObjectWrapperFactory(), configuration.getReflectorFactory());
+    final DefaultResultContext<V> context = new DefaultResultContext<V>();
+    for (V o : list) {
+      context.nextResultObject(o);
+      mapResultHandler.handleResult(context);
+    }
+    return mapResultHandler.getMappedResults();
+  }
+
+  @Override
+  public <T> Cursor<T> selectCursor(String statement) {
+    return selectCursor(statement, null);
+  }
+
+  @Override
+  public <T> Cursor<T> selectCursor(String statement, Object parameter) {
+    return selectCursor(statement, parameter, RowBounds.DEFAULT);
+  }
+
+  @Override
+  public <T> Cursor<T> selectCursor(String statement, Object parameter, RowBounds rowBounds) {
+    try {
+      MappedStatement ms = configuration.getMappedStatement(statement);
+      Cursor<T> cursor = executor.queryCursor(ms, wrapCollection(parameter), rowBounds);
+      registerCursor(cursor);
+      return cursor;
+    } catch (Exception e) {
+      throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);
+    } finally {
+      ErrorContext.instance().reset();
+    }
+  }
+
+  @Override
+  public <E> List<E> selectList(String statement) {
+    return this.selectList(statement, null);
+  }
+
+  @Override
+  public <E> List<E> selectList(String statement, Object parameter) {
+    return this.selectList(statement, parameter, RowBounds.DEFAULT);
+  }
+
+  @Override
+  public <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds) {
+    try {
+      MappedStatement ms = configuration.getMappedStatement(statement);
+      return executor.query(ms, wrapCollection(parameter), rowBounds, Executor.NO_RESULT_HANDLER);
+    } catch (Exception e) {
+      throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);
+    } finally {
+      ErrorContext.instance().reset();
+    }
+  }
+
+  @Override
+  public void select(String statement, Object parameter, ResultHandler handler) {
+    select(statement, parameter, RowBounds.DEFAULT, handler);
+  }
+
+  @Override
+  public void select(String statement, ResultHandler handler) {
+    select(statement, null, RowBounds.DEFAULT, handler);
+  }
+
+  @Override
+  public void select(String statement, Object parameter, RowBounds rowBounds, ResultHandler handler) {
+    try {
+      MappedStatement ms = configuration.getMappedStatement(statement);
+      executor.query(ms, wrapCollection(parameter), rowBounds, handler);
+    } catch (Exception e) {
+      throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);
+    } finally {
+      ErrorContext.instance().reset();
+    }
+  }
+
+  @Override
+  public int insert(String statement) {
+    return insert(statement, null);
+  }
+
+  @Override
+  public int insert(String statement, Object parameter) {
+    return update(statement, parameter);
+  }
+
+  @Override
+  public int update(String statement) {
+    return update(statement, null);
+  }
+
+  @Override
+  public int update(String statement, Object parameter) {
+    try {
+      dirty = true;
+      MappedStatement ms = configuration.getMappedStatement(statement);
+      return executor.update(ms, wrapCollection(parameter));
+    } catch (Exception e) {
+      throw ExceptionFactory.wrapException("Error updating database.  Cause: " + e, e);
+    } finally {
+      ErrorContext.instance().reset();
+    }
+  }
+
+  @Override
+  public int delete(String statement) {
+    return update(statement, null);
+  }
+
+  @Override
+  public int delete(String statement, Object parameter) {
+    return update(statement, parameter);
+  }
+
+  @Override
+  public void commit() {
+    commit(false);
+  }
+
+  @Override
+  public void commit(boolean force) {
+    try {
+      executor.commit(isCommitOrRollbackRequired(force));
+      dirty = false;
+    } catch (Exception e) {
+      throw ExceptionFactory.wrapException("Error committing transaction.  Cause: " + e, e);
+    } finally {
+      ErrorContext.instance().reset();
+    }
+  }
+
+  @Override
+  public void rollback() {
+    rollback(false);
+  }
+
+  @Override
+  public void rollback(boolean force) {
+    try {
+      executor.rollback(isCommitOrRollbackRequired(force));
+      dirty = false;
+    } catch (Exception e) {
+      throw ExceptionFactory.wrapException("Error rolling back transaction.  Cause: " + e, e);
+    } finally {
+      ErrorContext.instance().reset();
+    }
+  }
+
+  @Override
+  public List<BatchResult> flushStatements() {
+    try {
+      return executor.flushStatements();
+    } catch (Exception e) {
+      throw ExceptionFactory.wrapException("Error flushing statements.  Cause: " + e, e);
+    } finally {
+      ErrorContext.instance().reset();
+    }
+  }
+
+  @Override
+  public void close() {
+    try {
+      executor.close(isCommitOrRollbackRequired(false));
+      closeCursors();
+      dirty = false;
+    } finally {
+      ErrorContext.instance().reset();
+    }
+  }
+
+  private void closeCursors() {
+    if (cursorList != null && cursorList.size() != 0) {
+      for (Cursor<?> cursor : cursorList) {
+        try {
+          cursor.close();
+        } catch (IOException e) {
+          throw ExceptionFactory.wrapException("Error closing cursor.  Cause: " + e, e);
+        }
+      }
+      cursorList.clear();
+    }
+  }
+
+  @Override
+  public Configuration getConfiguration() {
+    return configuration;
+  }
+
+  @Override
+  public <T> T getMapper(Class<T> type) {
+    return configuration.<T>getMapper(type, this);
+  }
+
+  @Override
+  public Connection getConnection() {
+    try {
+      return executor.getTransaction().getConnection();
+    } catch (SQLException e) {
+      throw ExceptionFactory.wrapException("Error getting a new connection.  Cause: " + e, e);
+    }
+  }
+
+  @Override
+  public void clearCache() {
+    executor.clearLocalCache();
+  }
+
+  private <T> void registerCursor(Cursor<T> cursor) {
+    if (cursorList == null) {
+      cursorList = new ArrayList<Cursor<?>>();
+    }
+    cursorList.add(cursor);
+  }
+
+  private boolean isCommitOrRollbackRequired(boolean force) {
+    return (!autoCommit && dirty) || force;
+  }
+
+  private Object wrapCollection(final Object object) {
+    if (object instanceof Collection) {
+      StrictMap<Object> map = new StrictMap<Object>();
+      map.put("collection", object);
+      if (object instanceof List) {
+        map.put("list", object);
+      }
+      return map;
+    } else if (object != null && object.getClass().isArray()) {
+      StrictMap<Object> map = new StrictMap<Object>();
+      map.put("array", object);
+      return map;
+    }
+    return object;
+  }
+
+  public static class StrictMap<V> extends HashMap<String, V> {
+
+    private static final long serialVersionUID = -5741767162221585340L;
+
+    @Override
+    public V get(Object key) {
+      if (!super.containsKey(key)) {
+        throw new BindingException("Parameter '" + key + "' not found. Available parameters are " + this.keySet());
+      }
+      return super.get(key);
+    }
+
+  }
+}
+```
+
+
+
