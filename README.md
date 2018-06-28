@@ -8,3 +8,4 @@
 * [Zookeeper学习之-Zookeeper监听器原理](http://note.youdao.com/noteshare?id=c05ddbd83ff16734423b3debaa74df9f&sub=C6417CFE05A8491E9F44621FFF467651)
 * [Zookeeper学习之-CuratorFramework监听器使用（可无限监听）](http://note.youdao.com/noteshare?id=57376db91ebc52e33e35daa58fb34e9b&sub=C23C9D65A807447EB64133C08E4C401C)
 * [关于ConcurrentModificationException异常](http://note.youdao.com/noteshare?id=701be139972656189121ec91b80bf315&sub=28FE708CB5CE4529B390942B4FD0B0A9)
+* [MyBatis源码解析](https://github.com/lucky-xin/Learning/blob/gh-pages/md/Mybatis%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90.md)
