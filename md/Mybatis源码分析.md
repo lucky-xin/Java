@@ -2,7 +2,7 @@
 * [MyBatis使用](https://github.com/lucky-xin/Learning/blob/gh-pages/md/MybatisUse.md)
 
 * 源码解析 
-## 基于JDK动态代理实现，JDK代理必须有接口，而mapper就是接口。以Mapper接口方法名为XML节点名称配置映射文件xml。初始化时根据xml配置信息和Mapper接口定义为每个方法生成每代理方法MapperMethod。根据mapper接口信息使用jdk代理生产代理对象MapperProxy。MapperProxy封装了所有的代理方法MapperMethod。SqlSession获取Mapper时返回jdk方法生成的代理对象。调用Mapper对象方法时则传入参数SqlSession，调用代理方法MapperMethod。SqlSession封装了insert，update，delete方法，调用MapperMethod代理方法则调用SqlSession对象相应的数据库操作方法。
+#### 基于JDK动态代理实现，JDK代理必须有接口，而mapper就是接口。以Mapper接口方法名为XML节点名称配置映射文件xml。初始化时根据xml配置信息和Mapper接口定义为每个方法生成每代理方法MapperMethod。根据mapper接口信息使用jdk代理生产代理对象MapperProxy。MapperProxy封装了所有的代理方法MapperMethod。SqlSession获取Mapper时返回jdk方法生成的代理对象。调用Mapper对象方法时则传入参数SqlSession，调用代理方法MapperMethod。SqlSession封装了insert，update，delete方法，调用MapperMethod代理方法则调用SqlSession对象相应的数据库操作方法。
 ## 1.获取SqlSessionFactory
 ```java
 public class MySqlSessionFactory {
