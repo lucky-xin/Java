@@ -2,8 +2,12 @@
 * [MyBatis使用](https://github.com/lucky-xin/Learning/blob/gh-pages/md/MybatisUse.md)
 
 * 源码解析 
-#### 基于JDK动态代理实现，JDK代理必须有接口，而mapper就是接口。以Mapper接口方法名为XML节点名称配置映射文件xml。初始化时根据xml配置信息和Mapper接口定义为每个方法生成每代理方法MapperMethod。根据mapper接口信息使用jdk代理生产代理对象MapperProxy。MapperProxy封装了所有的代理方法MapperMethod。SqlSession获取Mapper时返回jdk方法生成的代理对象。调用Mapper对象方法时则传入参数SqlSession，调用代理方法MapperMethod。SqlSession封装了insert，update，delete方法，调用MapperMethod代理方法则调用SqlSession对象相应的数据库操作方法。
-## 1.获取SqlSessionFactory
+## 基于JDK动态代理实现，JDK代理必须有接口，而mapper就是接口。
+#### 1.以Mapper接口方法名为XML节点名称配置映射文件xml。
+#### 2.初始化时根据xml配置信息和Mapper接口定义为每个方法生成每代理方法MapperMethod。
+#### 3.根据mapper接口信息使用jdk代理生产代理对象MapperProxy。MapperProxy封装了所有的代理方法MapperMethod。使用SqlSessionFactory创建SqlSession对象。通过SqlSession的getMapper方法获取Mapper时返回jdk代理生成的代理对象。调用Mapper对象方法时则传入参数SqlSession，调用代理方法MapperMethod。SqlSession封装了insert，update，delete方法，调用MapperMethod代理方法则调用SqlSession对象相应的数据库操作方法。源码实现如下：
+
+## 1.配置xml文件创建SqlSessionFactory。根据SqlSessionFactory获取SqlSession对象。
 ```java
 public class MySqlSessionFactory {
 
@@ -23,7 +27,7 @@ static void init() {
     }
 }
 ```
-### 调用
+### 调用SqlSessionFactoryBuilder解析xml配置文件，使用Configuration封装配置信息。根据Configuration构建SqlSessionFactory对象。并且注册Mapper
 ```java
 public class SqlSessionFactoryBuilder {
 
@@ -42,7 +46,7 @@ public class SqlSessionFactoryBuilder {
   public SqlSessionFactory build(Reader reader, String environment, Properties properties) {
     try {
       XMLConfigBuilder parser = new XMLConfigBuilder(reader, environment, properties);
-      return build(parser.parse());
+      return build(parser.parse());//解析XML配置文件，注册Mapper
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error building SqlSession.", e);
     } finally {
@@ -70,7 +74,7 @@ public class SqlSessionFactoryBuilder {
   public SqlSessionFactory build(InputStream inputStream, String environment, Properties properties) {
     try {
       XMLConfigBuilder parser = new XMLConfigBuilder(inputStream, environment, properties);
-      return build(parser.parse());
+      return build(parser.parse());//解析XML配置文件，注册Mapper
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error building SqlSession.", e);
     } finally {
@@ -90,14 +94,14 @@ public class SqlSessionFactoryBuilder {
 }
 
 ```
-### 获取默认的SqlSessionFactory为DefaultSqlSessionFactory 给DefaultSqlSessionFactory设置Configuration configuration;
+### 获取SqlSessionFactory为DefaultSqlSessionFactory。通过DefaultSqlSessionFactory的构造方法创建并设置Configuration
 `
 public DefaultSqlSessionFactory(Configuration configuration) {
     this.configuration = configuration;
   }
 `
-### 调用DefaultSqlSessionFactory方法openSession获取SqlSession
-```java
+### 调用DefaultSqlSessionFactory方法openSession获取SqlSession。SqlSession封装了数据库操作方法。通过事务工厂对象创建事务Transaction（事务对象封装了javax.sql.DataSource,java.sql.Connection对象），执行器Executor持有事务对象Transaction。再通过DefaultSqlSession封装配置信息对象Configuration,执行器Executor。返回DefaultSqlSession对象
+```java。。
 public class DefaultSqlSessionFactory implements SqlSessionFactory {
     
  @Override
@@ -163,7 +167,7 @@ public class ManagedTransactionFactory implements TransactionFactory {
   }
 }
 ```
-### newTransaction方法创建了ManagedTransaction对象，ManagedTransaction封装了javax.sql.DataSource,java.sql.Connection对象
+### newTransaction方法创建了ManagedTransaction对象，ManagedTransaction封装了javax.sql.DataSource,java.sql.Connection对象，事务基于java.sql.Connection对象实现
 ```java
 package org.apache.ibatis.transaction.managed;
 
@@ -262,7 +266,7 @@ public Executor newExecutor(Transaction transaction, ExecutorType executorType) 
   }
 ```
 
-### 
+### 执行器SimpleExecutor源码
 ```java
 public class SimpleExecutor extends BaseExecutor {
     
@@ -319,7 +323,7 @@ public class SimpleExecutor extends BaseExecutor {
 }
 ```
 
-### 返回的SqlSession为DefaultSqlSession源码如下
+### 返回的SqlSession为DefaultSqlSession，封装了查询方法selectOne，selectMap，selectList插入方法insert，更新方法update，删除方法delete源码如下
 ```java
 public class DefaultSqlSession implements SqlSession {
 
@@ -623,6 +627,8 @@ public class DefaultSqlSession implements SqlSession {
   }
 }
 ```
+
+##
 
 
 
