@@ -4,7 +4,7 @@
 * 源码解析 
 ## 基于JDK动态代理实现，JDK代理必须有接口，而mapper就是接口。
 #### 1.以Mapper接口方法名为XML节点名称配置映射文件xml。
-#### 2.初始化时根据xml配置信息和Mapper接口定义为每个方法生成每代理方法MapperMethod。
+#### 2.初始化时根据xml配置信息和Mapper接口定义为每个方法生成每个代理方法MapperMethod。
 #### 3.根据mapper接口信息使用jdk代理生产代理对象MapperProxy。MapperProxy封装了所有的代理方法MapperMethod。使用SqlSessionFactory创建SqlSession对象。通过SqlSession的getMapper方法获取Mapper时返回jdk代理生成的代理对象。调用Mapper对象方法时则传入参数SqlSession，调用代理方法MapperMethod。SqlSession封装了insert，update，delete方法，调用MapperMethod代理方法则调用SqlSession对象相应的数据库操作方法。源码实现如下：
 
 ## 1.配置xml文件创建SqlSessionFactory。根据SqlSessionFactory获取SqlSession对象。
@@ -27,7 +27,7 @@ static void init() {
     }
 }
 ```
-### 调用SqlSessionFactoryBuilder解析xml配置文件，使用Configuration封装配置信息。根据Configuration构建SqlSessionFactory对象。并且注册Mapper
+### 调用SqlSessionFactoryBuilder解析xml配置文件，使用Configuration封装配置信息。根据Configuration构建SqlSessionFactory对象。并且注册Mapper并根据<transactionManager type="JDBC" />配置项确定事务工厂TransactionFactory,type="JDBC"则使用JdbcTransactionFactory事务工厂
 ```java
 public class SqlSessionFactoryBuilder {
 
@@ -74,7 +74,8 @@ public class SqlSessionFactoryBuilder {
   public SqlSessionFactory build(InputStream inputStream, String environment, Properties properties) {
     try {
       XMLConfigBuilder parser = new XMLConfigBuilder(inputStream, environment, properties);
-      return build(parser.parse());//解析XML配置文件，注册Mapper
+      //解析XML配置文件，注册Mapper，根据<transactionManager type="JDBC" />配置项确定事务工厂TransactionFactory
+      return build(parser.parse());
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error building SqlSession.", e);
     } finally {
@@ -101,7 +102,8 @@ public DefaultSqlSessionFactory(Configuration configuration) {
   }
 `
 ### 调用DefaultSqlSessionFactory方法openSession获取SqlSession。SqlSession封装了数据库操作方法。通过事务工厂对象创建事务Transaction（事务对象封装了javax.sql.DataSource,java.sql.Connection对象），执行器Executor持有事务对象Transaction。再通过DefaultSqlSession封装配置信息对象Configuration,执行器Executor。返回DefaultSqlSession对象
-```java。。
+### 根据配置文件确定事务工厂TransactionFactory如果type="jdbc"则使用JdbcTransactionFactory，使用JdbcTransactionFactory创建事务对象JdbcTransaction。JdbcTransaction封装了java.sql.Connection对象，事务实现基于java.sql.Connection实现。看源码会知道java.sql.Connection有setSavepoint方法（返回值为Savepoint），rollback(Savepoint)方法。事务实现为java.sql.Connection执行commit方法之前先调用setSavepoint保存现场，如果commit失败则调用rollback(Savepoint)方法恢复现场。后面详细分析。
+```java
 public class DefaultSqlSessionFactory implements SqlSessionFactory {
     
  @Override
@@ -113,8 +115,9 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
       Transaction tx = null;
       try {
         final Environment environment = configuration.getEnvironment();
+        // 根据配置文件确定事务工厂TransactionFactory如果type="jdbc"则使用JdbcTransactionFactory
         final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
-        
+        // 使用使用JdbcTransactionFactory创建事务对象JdbcTransaction
         tx = transactionFactory.newTransaction(environment.getDataSource(), level, autoCommit);
         
         final Executor executor = configuration.newExecutor(tx, execType);
@@ -136,95 +139,134 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
       return environment.getTransactionFactory();
     }
 }
-```
-### 创建ManagedTransactionFactory 
-```java
-public class ManagedTransactionFactory implements TransactionFactory {
 
-  private boolean closeConnection = true;
+public enum TransactionIsolationLevel {
+  //无
+  NONE(Connection.TRANSACTION_NONE),
+ //  (读已提交)：可避免脏读的发生READ_COMMITTED(Connection.TRANSACTION_READ_COMMITTED),
+ // (读未提交)：最低级别，任何情况都无法保证  
+READ_UNCOMMITTED(Connection.TRANSACTION_READ_UNCOMMITTED),
+ //  (可重复读)：可避免脏读、不可重复读的发生REPEATABLE_READ(Connection.TRANSACTION_REPEATABLE_READ),
+   (串行化)：可避免脏读、不可重复读、幻读的发生,但是性能低下
+  SERIALIZABLE(Connection.TRANSACTION_SERIALIZABLE);
+
+}
+```
+### JdbcTransactionFactory源码如下
+```java
+public class JdbcTransactionFactory implements TransactionFactory {
 
   @Override
   public void setProperties(Properties props) {
-    if (props != null) {
-      String closeConnectionProperty = props.getProperty("closeConnection");
-      if (closeConnectionProperty != null) {
-        closeConnection = Boolean.valueOf(closeConnectionProperty);
-      }
-    }
   }
 
   @Override
   public Transaction newTransaction(Connection conn) {
-    return new ManagedTransaction(conn, closeConnection);
+    return new JdbcTransaction(conn);
   }
 
   @Override
   public Transaction newTransaction(DataSource ds, TransactionIsolationLevel level, boolean autoCommit) {
-    // Silently ignores autocommit and isolation level, as managed transactions are entirely
-    // controlled by an external manager.  It's silently ignored so that
-    // code remains portable between managed and unmanaged configurations.
-    return new ManagedTransaction(ds, level, closeConnection);
+    return new JdbcTransaction(ds, level, autoCommit);
   }
 }
 ```
-### newTransaction方法创建了ManagedTransaction对象，ManagedTransaction封装了javax.sql.DataSource,java.sql.Connection对象，事务基于java.sql.Connection对象实现
+### newTransaction方法创建了JdbcTransaction对象，JdbcTransaction封装了javax.sql.DataSource,java.sql.Connection对象，事务基于java.sql.Connection对象实现。JdbcTransaction的commit方法直接调用java.sql.Connection对象的commit方法实现，回滚方法直接调用java.sql.Connection对象的rollback方法实现
 ```java
-package org.apache.ibatis.transaction.managed;
+public class JdbcTransaction implements Transaction {
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import javax.sql.DataSource;
+  private static final Log log = LogFactory.getLog(JdbcTransaction.class);
 
-import org.apache.ibatis.logging.Log;
-import org.apache.ibatis.logging.LogFactory;
-import org.apache.ibatis.session.TransactionIsolationLevel;
-import org.apache.ibatis.transaction.Transaction;
+  protected Connection connection;
+  protected DataSource dataSource;
+  protected TransactionIsolationLevel level;
+  // MEMO: We are aware of the typo. See #941
+  protected boolean autoCommmit;
 
-public class ManagedTransaction implements Transaction {
-
-  private static final Log log = LogFactory.getLog(ManagedTransaction.class);
-
-  private DataSource dataSource;
-  private TransactionIsolationLevel level;
-  private Connection connection;
-  private final boolean closeConnection;
-
-  public ManagedTransaction(Connection connection, boolean closeConnection) {
-    this.connection = connection;
-    this.closeConnection = closeConnection;
+  public JdbcTransaction(DataSource ds, TransactionIsolationLevel desiredLevel, boolean desiredAutoCommit) {
+    dataSource = ds;
+    level = desiredLevel;
+    autoCommmit = desiredAutoCommit;
   }
 
-  public ManagedTransaction(DataSource ds, TransactionIsolationLevel level, boolean closeConnection) {
-    this.dataSource = ds;
-    this.level = level;
-    this.closeConnection = closeConnection;
+  public JdbcTransaction(Connection connection) {
+    this.connection = connection;
   }
 
   @Override
   public Connection getConnection() throws SQLException {
-    if (this.connection == null) {
+    if (connection == null) {
       openConnection();
     }
-    return this.connection;
+    return connection;
   }
 
   @Override
   public void commit() throws SQLException {
-    // Does nothing
+    if (connection != null && !connection.getAutoCommit()) {
+      if (log.isDebugEnabled()) {
+        log.debug("Committing JDBC Connection [" + connection + "]");
+      }
+      connection.commit();
+    }
   }
 
   @Override
   public void rollback() throws SQLException {
-    // Does nothing
+    if (connection != null && !connection.getAutoCommit()) {
+      if (log.isDebugEnabled()) {
+        log.debug("Rolling back JDBC Connection [" + connection + "]");
+      }
+      connection.rollback();
+    }
   }
 
   @Override
   public void close() throws SQLException {
-    if (this.closeConnection && this.connection != null) {
+    if (connection != null) {
+      resetAutoCommit();
       if (log.isDebugEnabled()) {
-        log.debug("Closing JDBC Connection [" + this.connection + "]");
+        log.debug("Closing JDBC Connection [" + connection + "]");
       }
-      this.connection.close();
+      connection.close();
+    }
+  }
+
+  protected void setDesiredAutoCommit(boolean desiredAutoCommit) {
+    try {
+      if (connection.getAutoCommit() != desiredAutoCommit) {
+        if (log.isDebugEnabled()) {
+          log.debug("Setting autocommit to " + desiredAutoCommit + " on JDBC Connection [" + connection + "]");
+        }
+        connection.setAutoCommit(desiredAutoCommit);
+      }
+    } catch (SQLException e) {
+      // Only a very poorly implemented driver would fail here,
+      // and there's not much we can do about that.
+      throw new TransactionException("Error configuring AutoCommit.  "
+          + "Your driver may not support getAutoCommit() or setAutoCommit(). "
+          + "Requested setting: " + desiredAutoCommit + ".  Cause: " + e, e);
+    }
+  }
+
+  protected void resetAutoCommit() {
+    try {
+      if (!connection.getAutoCommit()) {
+        // MyBatis does not call commit/rollback on a connection if just selects were performed.
+        // Some databases start transactions with select statements
+        // and they mandate a commit/rollback before closing the connection.
+        // A workaround is setting the autocommit to true before closing the connection.
+        // Sybase throws an exception here.
+        if (log.isDebugEnabled()) {
+          log.debug("Resetting autocommit to true on JDBC Connection [" + connection + "]");
+        }
+        connection.setAutoCommit(true);
+      }
+    } catch (SQLException e) {
+      if (log.isDebugEnabled()) {
+        log.debug("Error resetting autocommit to true "
+          + "before closing the connection.  Cause: " + e);
+      }
     }
   }
 
@@ -232,17 +274,17 @@ public class ManagedTransaction implements Transaction {
     if (log.isDebugEnabled()) {
       log.debug("Opening JDBC Connection");
     }
-    this.connection = this.dataSource.getConnection();
-    if (this.level != null) {
-      this.connection.setTransactionIsolation(this.level.getLevel());
+    connection = dataSource.getConnection();
+    if (level != null) {
+      connection.setTransactionIsolation(level.getLevel());
     }
+    setDesiredAutoCommit(autoCommmit);
   }
 
   @Override
   public Integer getTimeout() throws SQLException {
     return null;
   }
-
 }
 ```
 ### 创建了ManagedTransaction对象之后`Executor executor = configuration.newExecutor(tx, execType)`创建sql执行器，为SimpleExecutor
