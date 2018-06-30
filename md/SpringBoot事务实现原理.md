@@ -40,7 +40,8 @@ public class TransactionManagementConfigurationSelector extends AdviceModeImport
 				return new String[] {AutoProxyRegistrar.class.getName(), 
 				ProxyTransactionManagementConfiguration.class.getName()};
 			case ASPECTJ:
-				return new String[] {TransactionManagementConfigUtils.TRANSACTION_ASPECT_CONFIGURATION_CLASS_NAME};
+				return new String[] {
+				TransactionManagementConfigUtils.TRANSACTION_ASPECT_CONFIGURATION_CLASS_NAME};
 			default:
 				return null;
 		}
@@ -184,7 +185,7 @@ abstract class TransactionAttributeSourcePointcut extends StaticMethodMatcherPoi
 
 ## AnnotationTransactionAttributeSource类结构如下图![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AnnotationTransactionAttributeSource.png)
 getTransactionAttribute方法具体在超类AbstractFallbackTransactionAttributeSource之中
-```java_holder_method_tree
+```java
 public TransactionAttribute getTransactionAttribute(Method method, @Nullable Class<?> targetClass) {
 		if (method.getDeclaringClass() == Object.class) {
 			return null;
@@ -226,7 +227,7 @@ public TransactionAttribute getTransactionAttribute(Method method, @Nullable Cla
 		}
 	}
 ```
-```java_holder_method_tree
+```
 protected TransactionAttribute computeTransactionAttribute(Method method, @Nullable Class<?> targetClass) {
 		// Don't allow no-public methods as required.
 		if (allowPublicMethodsOnly() && !Modifier.isPublic(method.getModifiers())) {
@@ -268,7 +269,7 @@ protected TransactionAttribute computeTransactionAttribute(Method method, @Nulla
 ```
 ## 最后查找Transactional注解任务分派到AnnotationTransactionAttributeSource类中使用SpringTransactionAnnotationParser解析注解
 如果SpringTransactionAnnotationParser找到Transactional注解则解析注解获取相关配置。
-```java_holder_method_tree
+```java
     @Override
 	@Nullable
 	protected TransactionAttribute findTransactionAttribute(Method method) {
@@ -441,7 +442,7 @@ public class TransactionInterceptor extends TransactionAspectSupport implements 
 
 ```
 ## 事务执行方法具体实现在事务拦截器TransactionInterceptor的超类TransactionAspectSupport的invokeWithinTransaction方法之中.通过createTransactionIfNecessary方法创建TransactionInfo对象保存事务提交之前状态（TransactionStatus），如果异常则回滚到事务执行之前的TransactionInfo保存消息点。
-```java_holder_method_tree
+```java
 protected Object invokeWithinTransaction(Method method, @Nullable Class<?> targetClass,
 			final InvocationCallback invocation) throws Throwable {
 
@@ -723,7 +724,7 @@ public abstract class AbstractTransactionStatus implements TransactionStatus {
 
 ```
 ## 创建TransactionInfo对象
-```java_holder_method_tree
+```java
 protected TransactionInfo createTransactionIfNecessary(@Nullable PlatformTransactionManager tm,
 			@Nullable TransactionAttribute txAttr, final String joinpointIdentification) {
 
@@ -744,7 +745,8 @@ protected TransactionInfo createTransactionIfNecessary(@Nullable PlatformTransac
 			}
 			else {
 				if (logger.isDebugEnabled()) {
-					logger.debug("Skipping transactional joinpoint [" + joinpointIdentification +
+					logger.debug("
+					Skipping transactional joinpoint [" + joinpointIdentification +
 							"] because no transaction manager has been configured");
 				}
 			}
@@ -754,7 +756,7 @@ protected TransactionInfo createTransactionIfNecessary(@Nullable PlatformTransac
 ```
 
 ## 发生了异常回滚事务,completeTransactionAfterThrowing方法源码。如下
-```java_holder_method_tree
+```java
 protected void completeTransactionAfterThrowing(@Nullable TransactionInfo txInfo, Throwable ex) {
 		if (txInfo != null && txInfo.getTransactionStatus() != null) {
 			if (logger.isTraceEnabled()) {
@@ -796,7 +798,7 @@ protected void completeTransactionAfterThrowing(@Nullable TransactionInfo txInfo
 	}
 ```
 ## AbstractPlatformTransactionManager的rollback方法
-```java_holder_method_tree
+```java
 public final void rollback(TransactionStatus status) throws TransactionException {
 		if (status.isCompleted()) {
 			throw new IllegalTransactionStateException(
@@ -882,7 +884,7 @@ public final void rollback(TransactionStatus status) throws TransactionException
 	}
 ```
 ## 最后会调用TransactionStatus的回滚方法rollbackToHeldSavepoint回滚到保存点，恢复现场。
-```java_holder_method_tree
+```java
 public void rollbackToHeldSavepoint() throws TransactionException {
 		Object savepoint = getSavepoint();
 		if (savepoint == null) {
@@ -900,7 +902,7 @@ public void rollbackToHeldSavepoint() throws TransactionException {
 ```
 ## rollbackToSavepoint方法最终会调用java.sql.Connection的rollback(Savepoint)方法回滚到保存点。
 JdbcTransactionObjectSupport回滚实现如下
-```java_holder_method_tree
+```java
 public void rollbackToSavepoint(Object savepoint) throws TransactionException {
         try {
             this.getConnectionHolderForSavepoint().getConnection().rollback((Savepoint)savepoint);
