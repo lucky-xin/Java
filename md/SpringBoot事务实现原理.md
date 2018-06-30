@@ -1,0 +1,3 @@
+# SpringBoot事务实现原理
+
+## 1.通过注解`@EnableTransactionManagement`打开事务配置，通过ProxyTransactionManagementConfiguration注册bean,AdvisorBeanFactoryTransactionAttributeSourceAdvisor
