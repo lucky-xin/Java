@@ -157,7 +157,8 @@ abstract class TransactionAttributeSourcePointcut extends StaticMethodMatcherPoi
 			return false;
 		}
 		TransactionAttributeSourcePointcut otherPc = (TransactionAttributeSourcePointcut) other;
-		return ObjectUtils.nullSafeEquals(getTransactionAttributeSource(), otherPc.getTransactionAttributeSource());
+		return ObjectUtils.nullSafeEquals(getTransactionAttributeSource(), 
+		otherPc.getTransactionAttributeSource());
 	}
 
 	@Override
@@ -216,7 +217,8 @@ public TransactionAttribute getTransactionAttribute(Method method, @Nullable Cla
 					((DefaultTransactionAttribute) txAttr).setDescriptor(methodIdentification);
 				}
 				if (logger.isDebugEnabled()) {
-					logger.debug("Adding transactional method '" + methodIdentification + "' with attribute: " + txAttr);
+					logger.debug("Adding transactional method '" 
+					+ methodIdentification + "' with attribute: " + txAttr);
 				}
 				this.attributeCache.put(cacheKey, txAttr);
 			}
@@ -352,9 +354,8 @@ public class SpringTransactionAnnotationParser implements TransactionAnnotationP
 
 }
 ```
-## 判断bean匹配Advisor之后为bean生成AOP代理对象。为方法生成拦截器之后。接下来调用bean对象的事务方法，
-实际调用AOP代理对象的拦截方法。AOP代理对象方法调用时使用Advice（切面）实现拦截。最后把切面封装成MethodInterceptor。通过MethodInterceptor的invoke来实现拦截。Spring 事务拦截器为
-TransactionInterceptor。TransactionInterceptor类结构图如下![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/TransactionInterceptor.png)
+## 判断bean匹配Advisor之后为bean生成AOP代理对象。为方法生成拦截器之后。接下来调用bean对象的事务方法，实际调用AOP代理对象的拦截方法。AOP代理对象方法调用时使用Advice（切面）实现拦截。最后把切面封装成MethodInterceptor。通过MethodInterceptor的invoke来实现拦截。Spring 事务拦截器为
+- TransactionInterceptor。TransactionInterceptor类结构图如下![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/TransactionInterceptor.png)
 ```java
 public class TransactionInterceptor extends TransactionAspectSupport implements MethodInterceptor, Serializable {
 
@@ -399,7 +400,8 @@ public class TransactionInterceptor extends TransactionAspectSupport implements 
 		// Work out the target class: may be {@code null}.
 		// The TransactionAttributeSource should be passed the target class
 		// as well as the method, which may be from an interface.
-		Class<?> targetClass = (invocation.getThis() != null ? AopUtils.getTargetClass(invocation.getThis()) : null);
+		Class<?> targetClass = (invocation.getThis() != null ? 
+		AopUtils.getTargetClass(invocation.getThis()) : null);
 
 		// Adapt to TransactionAspectSupport's invokeWithinTransaction...
 		// 事务执行方法
@@ -438,21 +440,22 @@ public class TransactionInterceptor extends TransactionAspectSupport implements 
 }
 
 ```
-## 事务执行方法具体实现在事务拦截器TransactionInterceptor的超类TransactionAspectSupport的invokeWithinTransaction方法之中.
-通过createTransactionIfNecessary方法创建TransactionInfo对象保存事务提交之前状态（TransactionStatus），如果异常则回滚到事务执行之前的TransactionInfo保存消息点。
+## 事务执行方法具体实现在事务拦截器TransactionInterceptor的超类TransactionAspectSupport的invokeWithinTransaction方法之中.通过createTransactionIfNecessary方法创建TransactionInfo对象保存事务提交之前状态（TransactionStatus），如果异常则回滚到事务执行之前的TransactionInfo保存消息点。
 ```java_holder_method_tree
 protected Object invokeWithinTransaction(Method method, @Nullable Class<?> targetClass,
 			final InvocationCallback invocation) throws Throwable {
 
 		// If the transaction attribute is null, the method is non-transactional.
 		TransactionAttributeSource tas = getTransactionAttributeSource();
-		final TransactionAttribute txAttr = (tas != null ? tas.getTransactionAttribute(method, targetClass) : null);
+		final TransactionAttribute txAttr = (tas != null ? 
+		tas.getTransactionAttribute(method, targetClass) : null);
 		final PlatformTransactionManager tm = determineTransactionManager(txAttr);
 		final String joinpointIdentification = methodIdentification(method, targetClass, txAttr);
 
 		if (txAttr == null || !(tm instanceof CallbackPreferringPlatformTransactionManager)) {
 			// Standard transaction demarcation with getTransaction and commit/rollback calls.
-			TransactionInfo txInfo = createTransactionIfNecessary(tm, txAttr, joinpointIdentification);
+			TransactionInfo txInfo = createTransactionIfNecessary(tm, txAttr, 
+			joinpointIdentification);
 			Object retVal = null;
 			try {
 				// This is an around advice: Invoke the next interceptor in the chain.
@@ -476,8 +479,10 @@ protected Object invokeWithinTransaction(Method method, @Nullable Class<?> targe
 
 			// It's a CallbackPreferringPlatformTransactionManager: pass a TransactionCallback in.
 			try {
-				Object result = ((CallbackPreferringPlatformTransactionManager) tm).execute(txAttr, status -> {
-					TransactionInfo txInfo = prepareTransactionInfo(tm, txAttr, joinpointIdentification, status);
+				Object result = ((CallbackPreferringPlatformTransactionManager) tm).execute(txAttr, 
+				status -> {
+					TransactionInfo txInfo = prepareTransactionInfo(tm, txAttr, 
+					joinpointIdentification, status);
 					try {
 						return invocation.proceedWithInvocation();
 					}
@@ -513,14 +518,16 @@ protected Object invokeWithinTransaction(Method method, @Nullable Class<?> targe
 			}
 			catch (TransactionSystemException ex2) {
 				if (throwableHolder.throwable != null) {
-					logger.error("Application exception overridden by commit exception", throwableHolder.throwable);
+					logger.error("Application exception overridden by commit 
+					exception", throwableHolder.throwable);
 					ex2.initApplicationException(throwableHolder.throwable);
 				}
 				throw ex2;
 			}
 			catch (Throwable ex2) {
 				if (throwableHolder.throwable != null) {
-					logger.error("Application exception overridden by commit exception", throwableHolder.throwable);
+					logger.error("Application exception overridden by commit exception", 
+					throwableHolder.throwable);
 				}
 				throw ex2;
 			}
@@ -642,7 +649,8 @@ public abstract class AbstractTransactionStatus implements TransactionStatus {
 		Object savepoint = getSavepoint();
 		if (savepoint == null) {
 			throw new TransactionUsageException(
-					"Cannot roll back to savepoint - no savepoint associated with current transaction");
+					"Cannot roll back to savepoint - 
+					no savepoint associated with current transaction");
 		}
 		getSavepointManager().rollbackToSavepoint(savepoint);
 		getSavepointManager().releaseSavepoint(savepoint);
@@ -656,7 +664,8 @@ public abstract class AbstractTransactionStatus implements TransactionStatus {
 		Object savepoint = getSavepoint();
 		if (savepoint == null) {
 			throw new TransactionUsageException(
-					"Cannot release savepoint - no savepoint associated with current transaction");
+					"Cannot release savepoint - 
+					no savepoint associated with current transaction");
 		}
 		getSavepointManager().releaseSavepoint(savepoint);
 		setSavepoint(null);
@@ -827,20 +836,26 @@ public final void rollback(TransactionStatus status) throws TransactionException
 				else {
 					// Participating in larger transaction
 					if (status.hasTransaction()) {
-						if (status.isLocalRollbackOnly() || isGlobalRollbackOnParticipationFailure()) {
+						if (status.isLocalRollbackOnly() || 
+						isGlobalRollbackOnParticipationFailure()) {
 							if (status.isDebug()) {
-								logger.debug("Participating transaction failed - marking existing transaction as rollback-only");
+								logger.debug("Participating 
+								transaction failed - marking 
+								existing transaction as rollback-only");
 							}
 							doSetRollbackOnly(status);
 						}
 						else {
 							if (status.isDebug()) {
-								logger.debug("Participating transaction failed - letting transaction originator decide on rollback");
+								logger.debug("Participating 
+								transaction failed - letting transaction 
+								originator decide on rollback");
 							}
 						}
 					}
 					else {
-						logger.debug("Should roll back transaction but cannot - no transaction available");
+						logger.debug("Should roll back transaction but 
+						cannot - no transaction available");
 					}
 					// Unexpected rollback only matters here if we're asked to fail early
 					if (!isFailEarlyOnGlobalRollbackOnly()) {
