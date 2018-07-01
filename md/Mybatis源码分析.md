@@ -97,7 +97,7 @@ public class SqlSessionFactoryBuilder {
 }
 
 ```
-* 注册Mapper过程。
+# 注册Mapper过程。
 ### 调用XMLConfigBuilder的方法parse解析配置文件并注册Mapper。
 XMLConfigBuilder的parse方法
 ```java
@@ -214,7 +214,7 @@ public DefaultSqlSessionFactory(Configuration configuration) {
     this.configuration = configuration;
   }
 `
-* 获取Mapper
+# 获取Mapper
 ### 调用DefaultSqlSessionFactory方法openSession获取SqlSession。SqlSession封装了数据库操作方法。通过事务工厂对象创建事务Transaction（事务对象封装了javax.sql.DataSource,java.sql.Connection对象），执行器Executor持有事务对象Transaction。再通过DefaultSqlSession封装配置信息对象Configuration,执行器Executor。返回DefaultSqlSession对象
 ### 根据配置文件确定事务工厂TransactionFactory如果type="jdbc"则使用JdbcTransactionFactory，使用JdbcTransactionFactory创建事务对象JdbcTransaction。JdbcTransaction封装了java.sql.Connection对象，事务实现基于java.sql.Connection实现。看源码会知道（事务实现方法之一）java.sql.Connection有setSavepoint方法（返回值为Savepoint），rollback(Savepoint)方法。事务实现为java.sql.Connection执行commit方法之前先调用setSavepoint保存现场，如果commit失败则调用rollback(Savepoint)方法恢复现场。后面详细分析。
 ```java
@@ -783,9 +783,9 @@ public class DefaultSqlSession implements SqlSession {
   }
 }
 ```
-* 通过SqlSession获取Mapper
+#  通过SqlSession获取Mapper
 
-## SqlSession为DefaultSqlSession。在DefaultSqlSession的getMapper方法。委派给configuration的getMapper方法
+### SqlSession为DefaultSqlSession。在DefaultSqlSession的getMapper方法。委派给configuration的getMapper方法
 ```java
   public <T> T getMapper(Class<T> type) {
     return configuration.<T>getMapper(type, this);
@@ -973,7 +973,7 @@ public Object execute(SqlSession sqlSession, Object[] args) {
   }
 ```
 
-## MyBatis所有insert,delete方法最后都会分派到update(String,Object)方法
+### MyBatis所有insert,delete方法最后都会分派到update(String,Object)方法
 ```java
  @Override
   public int update(String statement, Object parameter) {
@@ -988,7 +988,7 @@ public Object execute(SqlSession sqlSession, Object[] args) {
     }
   }
 ```
-## 最后分派给执行器.在BaseExecutor之中的update方法。
+### 最后分派给执行器.在BaseExecutor之中的update方法。
 ```java
  @Override
   public int update(MappedStatement ms, Object parameter) throws SQLException {
@@ -1001,7 +1001,7 @@ public Object execute(SqlSession sqlSession, Object[] args) {
     return doUpdate(ms, parameter);
   }
 ```
-## SimpleExecutor的doUpdate方法实现
+### SimpleExecutor的doUpdate方法实现
 ```java
 @Override
   public int doUpdate(MappedStatement ms, Object parameter) throws SQLException {
@@ -1031,7 +1031,7 @@ public Object execute(SqlSession sqlSession, Object[] args) {
     }
 ```
 
-## 
+
 ```java
  // DefaultSqlSession之中的selectList方法
 @Override
