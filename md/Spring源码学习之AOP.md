@@ -125,7 +125,8 @@ public class XinSpringbootApplication extends SpringBootServletInitializer {
 }
 
 ```
-## 访问Controller控制台打印信息如下![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AOP.png
+## 访问Controller控制台打印信息如下![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AOP.png)
+# 源码分析
 ## 注解`@EnableAspectJAutoProxy`功能如下
 ```java
 @Target(ElementType.TYPE)
