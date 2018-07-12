@@ -125,7 +125,7 @@ public class XinSpringbootApplication extends SpringBootServletInitializer {
 ## 访问Controller控制台打印信息如下![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/AOP.png)根据调用对象方法执行链为先调用Around注解方法，然后调用Before注解方法，然后退出Around注解方法调用AfterReturning注解方法，如果Around方法没有返回值，则AfterReturning方法获取不到返回值，如果Around处理了异常，则AfterThrowing获取不到异常 
 
 
-# 源码分析
+# 源码分析 代理模式就是给原来的对象创建一个代理对象，而这个代理对象持有原来的对象的引用。这样代理对象就可以在调用原来对象的方法时增加一些额外的操作。
 ## 注解`@EnableAspectJAutoProxy`功能如下
 ```java
 @Target(ElementType.TYPE)
