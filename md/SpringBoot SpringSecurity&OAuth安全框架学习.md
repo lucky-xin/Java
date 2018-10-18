@@ -5,7 +5,8 @@
 ## Spring Security框架设计并没有IoC,MVC好,譬如MVC你可以自己指定DispatcherServlet使用HandlerMapping，HandlerAdapter等等等。。。指定优先级，被某一个HandlerMapping拦截
 其他HandlerMapping不在执行，在Spring Security之中做不到，虽然必须要执行下一个拦截器，但是可以替换拦截器呀。对，就是不能替换，所有的拦截器都要执行一遍，就算你自定义了拦截器addFilterBefore于UsernamePasswordAuthenticationFilter
 下一个就执行UsernamePasswordAuthenticationFilter了！！！
-
+# 过滤器拦截流程图![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/%E6%8B%A6%E6%88%AA%E6%B5%81%E7%A8%8B.png)
+# 登录认证流程图![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/%E7%99%BB%E5%BD%95%E8%AE%A4%E8%AF%81%E6%B5%81%E7%A8%8B.png)
 # 源码解析 在org.springframework.security.web.access.intercept.FilterSecurityInterceptor中的doFilter拦截到请求
 ```java
 public void doFilter(ServletRequest request, ServletResponse response,
