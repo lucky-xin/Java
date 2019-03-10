@@ -73,7 +73,7 @@ GET smart_sourcing_system_company_search_index/_analyze?pretty=true
 # [搜索过程](https://github.com/lucky-xin/Learning/blob/gh-pages/image/elasticsearch-search-pas.png)
 ```text
 查询阶段包含以下三个步骤:
-客户端发送一个 search 请求到 Node 3 ， Node 3 会创建一个大小为 from + size 的空优先队列。
+客户端发送一个 search 请求到 Node 3,Node 3 会创建一个大小为 from + size 的空优先队列。
 Node 3 将查询请求转发到索引的每个主分片或副本分片中。每个分片在本地执行查询并添加结果到大小为 from + size 的本地有序优先队列中。
 每个分片返回各自优先队列中所有文档的 ID 和排序值给协调节点，也就是 Node 3 ，它合并这些值到自己的优先队列中来产生一个全局排序后的结果列表。
 当一个搜索请求被发送到某个节点时，这个节点就变成了协调节点。 这个节点的任务是广播查询请求到所有相关分片并将它们的响应整合成全局排序后的结果集合，
