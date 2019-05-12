@@ -230,7 +230,7 @@ public class MapperScannerRegistrar implements ImportBeanDefinitionRegistrar, Re
   }
 ```
 # 这样就完成了mapper接口定义注册，后面初始化其他bean对象，有依赖mapper对象的会去初始化mapper,也就是初始化MapperFactoryBean
-# 接下来看看MapperFactoryBean源码
+# 接下来看看MapperFactoryBean源码![MapperFactoryBean类类](https://github.com/lucky-xin/Learning/blob/gh-pages/image/MapperFactoryBean.PNG)
 ```java
 
 ```
