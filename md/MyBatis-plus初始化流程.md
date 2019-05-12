@@ -231,6 +231,198 @@ public class MapperScannerRegistrar implements ImportBeanDefinitionRegistrar, Re
 ```
 # 这样就完成了mapper接口定义注册，后面初始化其他bean对象，有依赖mapper对象的会去初始化mapper,也就是初始化MapperFactoryBean
 # 接下来看看MapperFactoryBean源码![MapperFactoryBean类类](https://github.com/lucky-xin/Learning/blob/gh-pages/image/MapperFactoryBean.PNG)
+# 1. 实现了FactoryBean接口,FactoryBean为创建bean工厂，在DefaultListableBeanFactory超类AbstractFactoryBean的doGetBean方法之中获取bean时会先去singleton缓存获取
+# 如果如果拿到bean对象则判断该bean是否为FactoryBean如果是则调用FactoryBean的getObject方法获取对象。
+# 2. 实现了InitializingBean接口为初始化完成之后回调，用于初始化mapper把mapper注册到Configuration实际上是mapper注册中心MapperRegistry
+# afterPropertiesSet方法具体实现在超类DaoSupport
 ```java
+	@Override
+	public final void afterPropertiesSet() throws IllegalArgumentException, BeanInitializationException {
+		// Let abstract subclasses check their configuration.
+		// MapperFactoryBean类重写该方法用于初始化mapper 
+		checkDaoConfig();
 
+		// Let concrete implementations initialize themselves.
+		try {
+			initDao();
+		}
+		catch (Exception ex) {
+			throw new BeanInitializationException("Initialization of DAO failed", ex);
+		}
+	}
+```
+```java
+public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements FactoryBean<T> {
+
+  private Class<T> mapperInterface;
+
+  private boolean addToConfig = true;
+
+  public MapperFactoryBean() {
+    //intentionally empty 
+  }
+  
+  public MapperFactoryBean(Class<T> mapperInterface) {
+    this.mapperInterface = mapperInterface;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  protected void checkDaoConfig() {
+    super.checkDaoConfig();
+
+    notNull(this.mapperInterface, "Property 'mapperInterface' is required");
+    // 初始化mapper,把mapper信息注册到注册中心之中
+    Configuration configuration = getSqlSession().getConfiguration();
+    if (this.addToConfig && !configuration.hasMapper(this.mapperInterface)) {
+      try {
+        configuration.addMapper(this.mapperInterface);
+      } catch (Exception e) {
+        logger.error("Error while adding the mapper '" + this.mapperInterface + "' to configuration.", e);
+        throw new IllegalArgumentException(e);
+      } finally {
+        ErrorContext.instance().reset();
+      }
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public T getObject() throws Exception {
+    return getSqlSession().getMapper(this.mapperInterface);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public Class<T> getObjectType() {
+    return this.mapperInterface;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean isSingleton() {
+    return true;
+  }
+
+  //------------- mutators --------------
+
+  /**
+   * Sets the mapper interface of the MyBatis mapper
+   *
+   * @param mapperInterface class of the interface
+   */
+  public void setMapperInterface(Class<T> mapperInterface) {
+    this.mapperInterface = mapperInterface;
+  }
+
+  /**
+   * Return the mapper interface of the MyBatis mapper
+   *
+   * @return class of the interface
+   */
+  public Class<T> getMapperInterface() {
+    return mapperInterface;
+  }
+
+  /**
+   * If addToConfig is false the mapper will not be added to MyBatis. This means
+   * it must have been included in mybatis-config.xml.
+   * <p>
+   * If it is true, the mapper will be added to MyBatis in the case it is not already
+   * registered.
+   * <p>
+   * By default addToConfig is true.
+   *
+   * @param addToConfig a flag that whether add mapper to MyBatis or not
+   */
+  public void setAddToConfig(boolean addToConfig) {
+    this.addToConfig = addToConfig;
+  }
+
+  /**
+   * Return the flag for addition into MyBatis config.
+   *
+   * @return true if the mapper will be added to MyBatis in the case it is not already
+   * registered.
+   */
+  public boolean isAddToConfig() {
+    return addToConfig;
+  }
+}
+
+```
+# Configuration的注册mapper方法.具体委派到MybatisMapperRegistry的addMapper方法源码如下
+```java
+    @Override
+    public <T> void addMapper(Class<T> type) {
+        if (type.isInterface()) {
+            if (hasMapper(type)) {
+                // TODO 如果之前注入 直接返回
+                return;
+                // TODO 这里就不抛异常了
+//                throw new BindingException("Type " + type + " is already known to the MapperRegistry.");
+            }
+            boolean loadCompleted = false;
+            try {
+                // TODO 这里也换成 MybatisMapperProxyFactory 而不是 MapperProxyFactory
+                knownMappers.put(type, new MybatisMapperProxyFactory<>(type));
+                // It's important that the type is added before the parser is run
+                // otherwise the binding may automatically be attempted by the
+                // mapper parser. If the type is already known, it won't try.
+                // TODO 这里也换成 MybatisMapperAnnotationBuilder 而不是 MapperAnnotationBuilder
+                MybatisMapperAnnotationBuilder parser = new MybatisMapperAnnotationBuilder(config, type);
+                // 解析xml,生成statement语句信息
+                parser.parse();
+                loadCompleted = true;
+            } finally {
+                if (!loadCompleted) {
+                    knownMappers.remove(type);
+                }
+            }
+        }
+    }
+```
+# 具体解析在MybatisMapperAnnotationBuilder类的parse方法。遍历mapper的所有方法生成statement信息并注册到注册中心MapperRegistry。
+# 等运行时会根据namespace+statement来获取某一个statement。SqlSession所有操作都基于statement。这样就完成了mapper初始化以及把mapper注册到注册中心之中。
+```java
+ @Override
+    public void parse() {
+        String resource = type.toString();
+        if (!configuration.isResourceLoaded(resource)) {
+            // 加载mapper的xml文件
+            loadXmlResource();
+            configuration.addLoadedResource(resource);
+            final String typeName = type.getName();
+            assistant.setCurrentNamespace(typeName);
+            parseCache();
+            parseCacheRef();
+            SqlParserHelper.initSqlParserInfoCache(type);
+            Method[] methods = type.getMethods();
+            for (Method method : methods) {
+                try {
+                    // issue #237
+                    if (!method.isBridge()) {
+                        parseStatement(method);
+                        SqlParserHelper.initSqlParserInfoCache(typeName, method);
+                    }
+                } catch (IncompleteElementException e) {
+                    // TODO 使用 MybatisMethodResolver 而不是 MethodResolver
+                    configuration.addIncompleteMethod(new MybatisMethodResolver(this, method));
+                }
+            }
+            // TODO 注入 CURD 动态 SQL , 放在在最后, because 可能会有人会用注解重写sql
+            if (GlobalConfigUtils.isSupperMapperChildren(configuration, type)) {
+                GlobalConfigUtils.getSqlInjector(configuration).inspectInject(assistant, type);
+            }
+        }
+        parsePendingMethods();
+    }
 ```
