@@ -5,7 +5,7 @@
 文档id为1
 GET smart_sourcing_system_company_search_index/_analyze?pretty=true
 {
-    "analyzer":"ik_max_word",
+    "analyzer": "ik_max_word",
     "text": "中华人民共和国"
 }
 ```
@@ -15,7 +15,7 @@ GET smart_sourcing_system_company_search_index/_analyze?pretty=true
 文档id为2
 GET smart_sourcing_system_company_search_index/_analyze?pretty=true
 {
-    "analyzer":"ik_max_word",
+    "analyzer": "ik_max_word",
     "text": "中华人民共和国国歌"
 }
 ```
