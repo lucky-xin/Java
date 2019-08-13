@@ -1,0 +1,5 @@
+1.Spring之中Service接口实现类ServiceImpl为CgLib动态代理生成的类。如IoC之中某个ServiceImpl为serviceImpl反射获取到的Class并不是原来对象的class
+需要通过工具类获取原来对象
+```java
+com.baomidou.mybatisplus.extension.toolkit.AopUtils.getTargetObject(serviceImpl)
+```
