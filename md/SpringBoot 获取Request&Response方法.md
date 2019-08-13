@@ -25,7 +25,8 @@ private HttpServletRequest request;
 private HttpServletResponse response;
 ```
 
-# 直接注入实现原理
+# 直接注入实现原理,实际注入的对象如图所示[注入的对象](https://github.com/lucky-xin/Learning/blob/gh-pages/image/elasticsearch-search-pas.png)
+
 
 
 
