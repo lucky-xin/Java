@@ -4,8 +4,8 @@
 是否正确，如果正确就创建一个对象Authentication，并存入上下文，SecurityContextHolder.getContext().setAuthentication(authResult);
 有两种请求方式对应两个不同的Filter
 ```
-[BasicAuthenticationFilter][https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-BasicAuthenticationFilter.md]
-与[ClientCredentialsTokenEndpointFilter][https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ClientCredentialTokenEndpointFilter.md]
+[BasicAuthenticationFilter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-BasicAuthenticationFilter.md)
+与[ClientCredentialsTokenEndpointFilter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ClientCredentialTokenEndpointFilter.md)
 ```java
 package org.springframework.security.oauth2.provider.endpoint;
 /**
@@ -216,11 +216,12 @@ public class CompositeTokenGranter implements TokenGranter {
 ```
 ```text
 tokenGranters初始化添加如下TokenGranter实现类：
-1.AuthorizationCodeTokenGranter授权码模式（用于三方登录）,对应uri请求为/oauth/authorize,grant_type为authorization_code时使用该模式
-2.ResourceOwnerPasswordTokenGranter账号密码模式,对应uri请求/oauth/token，grant_type为password时使用该模式
-3.RefreshTokenGranter,刷新token模式,对应uri请求/oauth/token,grant_type为refresh_token时使用该模式
-4.ClientCredentialsTokenGranter模式用于用client_id和client_secret来获取授权,grant_type为client_credentials时使用该模式
 ```
+* [AuthorizationCodeTokenGranter]()授权码模式（用于三方登录）,对应uri请求为/oauth/authorize,grant_type为authorization_code时使用该模式
+* [ResourceOwnerPasswordTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ResourceOwnerPasswordTokenGranter.md)账号密码模式,对应uri请求/oauth/token，grant_type为password时使用该模式
+* [RefreshTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-RefreshTokenGranter.md),刷新token模式,对应uri请求/oauth/token,grant_type为refresh_token时使用该模式
+* [ClientCredentialsTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ClientCredentialsTokenGranter.md)模式用于用client_id和client_secret来获取授权,grant_type为client_credentials时使用该模式
+
 ```java
 	private List<TokenGranter> getDefaultTokenGranters() {
 		ClientDetailsService clientDetails = clientDetailsService();
