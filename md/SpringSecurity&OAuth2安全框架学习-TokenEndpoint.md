@@ -5,7 +5,18 @@
 有两种请求方式对应两个不同的Filter
 ```
 [BasicAuthenticationFilter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-BasicAuthenticationFilter.md)
+```text
+拦截如下请求url:
+http://127.0.0.1:1000/oauth/token?username=aaa&password=123456&grant_type=password&scope=read-write
+请求头: Authorization= Basic aaaaaaaadad
+base64加密client_id:client_secret字符串
+aaaaaaaadad = base64(client_id:client_secret) 
+```
 与[ClientCredentialsTokenEndpointFilter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ClientCredentialTokenEndpointFilter.md)
+```text
+拦截如下请求url:
+http://127.0.0.1:1000/oauth/token?username=aaa&password=123456&grant_type=password&scope=read-write&client_id=aaa&client_secret=bbb
+```
 ```java
 package org.springframework.security.oauth2.provider.endpoint;
 /**
@@ -159,11 +170,11 @@ public class CompositeTokenGranter implements TokenGranter {
 }
 ```
 # TokenGranter实现类
-* [AuthorizationCodeTokenGranter]()授权码模式（用于三方登录）,对应uri请求为/oauth/token,grant_type为authorization_code时使用该模式
+* [AuthorizationCodeTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-AuthorizationCodeTokenGranter.md)授权码模式（用于三方登录）,对应uri请求为/oauth/token,grant_type为authorization_code时使用该模式
 * [ResourceOwnerPasswordTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ResourceOwnerPasswordTokenGranter.md)账号密码模式,对应uri请求/oauth/token，grant_type为password时使用该模式
 * [RefreshTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-RefreshTokenGranter.md),刷新token模式,对应uri请求/oauth/token,grant_type为refresh_token时使用该模式
 * [ClientCredentialsTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ClientCredentialsTokenGranter.md)模式用于用client_id和client_secret来获取授权,grant_type为client_credentials时使用该模式
-* [ImplicitTokenGranter]()该模式用于处理请求uri /oauth/authorize?scope=server&response_type=token&redirect_uri=http://www.baidu.com&client_id=aaa
+* [ImplicitTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ImplicitTokenGranter.md)该模式用于处理请求uri /oauth/authorize?scope=server&response_type=token&redirect_uri=http://www.baidu.com&client_id=aaa
 # tokenGranters初始化添加如下
 ```java
 	private List<TokenGranter> getDefaultTokenGranters() {

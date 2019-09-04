@@ -1,11 +1,10 @@
 ```text
-AuthorizationEndpoint为授权码授权认证端点，以及授权三方登录有两种模式code和token,response_type必须为code或者token,必须传入client_id
+AuthorizationEndpoint为授权认证端点。有两种模式code和token,response_type必须为code或者token,必须传入client_id
 并且必须进行登录认证成功之后才能进行授权
 实现方式：用户调用/oauth/authorize时因为没有访问权限(/oauth/authorize不能公开访问情况下)，
 抛出异常被
 ```
 [org.springframework.security.web.access.ExceptionTranslationFilter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ExceptionTanslationFilter.md)
-
 ```text
 拦截处理，使用
 ```
@@ -15,9 +14,12 @@ AuthorizationEndpoint为授权码授权认证端点，以及授权三方登录�
 ```
 [org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-LoginUrlAuthenticationEntryPoint.md)
 ```text
+重定向到登录页面进行登录验证生成Authentication,认证成功后使用配置的
 ```
-重定向到登录页面进行登录验证生成Authentication,认证成功后使用配置的[SavedRequestAwareAuthenticationSuccessHandler]()
-认证成功之后从RequestCache之中获取认证之前的请求url,再进行重定向此时请求上下文已经有Authentication，已经被授权访问，重定向到被拦截的uri。
+[SavedRequestAwareAuthenticationSuccessHandler](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-SavedRequestAwareAuthenticationSuccessHandler.md)
+```text
+从RequestCache之中获取认证之前的请求url,再进行重定向到该uri。此时请求上下文已经有Authentication，已经被授权访问。
+```
 ```text
 后面调用AuthorizationEndpoint的authorize方法以及approveOrDeny方法 的参数Principal 就是已经认证成功的Authentication，
 1.token 模式。用于授权登录（/oauth/token?grant_type=authorization_code进行登录认证）授权之后重定向到redirect_uri
