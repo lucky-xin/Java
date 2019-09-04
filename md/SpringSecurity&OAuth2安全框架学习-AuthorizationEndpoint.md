@@ -5,11 +5,18 @@ AuthorizationEndpoint为授权码授权认证端点，以及授权三方登录�
 抛出异常被
 ```
 [org.springframework.security.web.access.ExceptionTranslationFilter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ExceptionTanslationFilter.md)
-```text
-拦截处理，使用org.springframework.security.web.savedrequest.RequestCache保存当前的request以及response对象，使用
-org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint重定向到登录页面进行登录验证生成Authentication，
-认证成功之后从RequestCache之中获取认证之前的请求url,在进行重定向此时请求上下文已经有Authentication，已经被授权访问。
 
+```text
+拦截处理，使用
+```
+[org.springframework.security.web.savedrequest.RequestCache](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-HttpSessionRequestCache.md)
+```text
+保存当前的request以及response对象，使用
+```
+[org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-LoginUrlAuthenticationEntryPoint.md)
+```text
+重定向到登录页面进行登录验证生成Authentication，
+认证成功之后从RequestCache之中获取认证之前的请求url,在进行重定向此时请求上下文已经有Authentication，已经被授权访问。
 后面调用AuthorizationEndpoint的authorize方法以及approveOrDeny方法 的参数Principal 就是已经认证成功的Authentication，
 1.token 模式。获取授权的token用于授权登录（/oauth/token?grant_type=authorization_code进行登录认证）
 2.code 模式。授权之后生成一个code并重定向到redirect_uri(格式为redirect_uri?code=生成的code)
