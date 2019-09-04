@@ -1,5 +1,5 @@
 ```text
-权限登录处理类TokenEndpoint详情如下，具体处理登录权限uri /oauth/token在方法postAccessToken之中。
+令牌端点具体处理登录权限uri /oauth/token在方法postAccessToken之中。
 查看postAccessToken方法可知在调用时必须传入认证已经认证的Authentication，否则报错。SpringSecurity构建Authentication思路为先验证客户端（client_id,client_secret）
 是否正确，如果正确就创建一个对象Authentication，并存入上下文，SecurityContextHolder.getContext().setAuthentication(authResult);
 有两种请求方式对应两个不同的Filter
