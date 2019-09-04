@@ -1,6 +1,6 @@
 ```text
 权限登录处理类TokenEndpoint详情如下，具体处理登录权限uri /oauth/token在方法postAccessToken之中。
-查看postAccessToken方法可知在调用时必须传入认证已经认证的Authentication，否则报错。SpringSecurity构建Authentication思路为先验证客户端
+查看postAccessToken方法可知在调用时必须传入认证已经认证的Authentication，否则报错。SpringSecurity构建Authentication思路为先验证客户端（client_id,client_secret）
 是否正确，如果正确就创建一个对象Authentication，并存入上下文，SecurityContextHolder.getContext().setAuthentication(authResult);
 有两种请求方式对应两个不同的Filter
 ```
@@ -120,62 +120,6 @@ public class TokenEndpoint extends AbstractEndpoint {
 		}
 		return clientId;
 	}
-
-	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-	public ResponseEntity<OAuth2Exception> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) throws Exception {
-		if (logger.isInfoEnabled()) {
-			logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
-		}
-	    return getExceptionTranslator().translate(e);
-	}
-	
-	@ExceptionHandler(Exception.class)
-	public ResponseEntity<OAuth2Exception> handleException(Exception e) throws Exception {
-		if (logger.isErrorEnabled()) {
-			logger.error("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage(), e);
-		}
-		return getExceptionTranslator().translate(e);
-	}
-	
-	@ExceptionHandler(ClientRegistrationException.class)
-	public ResponseEntity<OAuth2Exception> handleClientRegistrationException(Exception e) throws Exception {
-		if (logger.isWarnEnabled()) {
-			logger.warn("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
-		}
-		return getExceptionTranslator().translate(new BadClientCredentialsException());
-	}
-
-	@ExceptionHandler(OAuth2Exception.class)
-	public ResponseEntity<OAuth2Exception> handleException(OAuth2Exception e) throws Exception {
-		if (logger.isWarnEnabled()) {
-			logger.warn("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
-		}
-		return getExceptionTranslator().translate(e);
-	}
-
-	private ResponseEntity<OAuth2AccessToken> getResponse(OAuth2AccessToken accessToken) {
-		HttpHeaders headers = new HttpHeaders();
-		headers.set("Cache-Control", "no-store");
-		headers.set("Pragma", "no-cache");
-		headers.set("Content-Type", "application/json;charset=UTF-8");
-		return new ResponseEntity<OAuth2AccessToken>(accessToken, headers, HttpStatus.OK);
-	}
-
-	private boolean isRefreshTokenRequest(Map<String, String> parameters) {
-		return "refresh_token".equals(parameters.get("grant_type")) && parameters.get("refresh_token") != null;
-	}
-
-	private boolean isAuthCodeRequest(Map<String, String> parameters) {
-		return "authorization_code".equals(parameters.get("grant_type")) && parameters.get("code") != null;
-	}
-
-	public void setOAuth2RequestValidator(OAuth2RequestValidator oAuth2RequestValidator) {
-		this.oAuth2RequestValidator = oAuth2RequestValidator;
-	}
-
-	public void setAllowedRequestMethods(Set<HttpMethod> allowedRequestMethods) {
-		this.allowedRequestMethods = allowedRequestMethods;
-	}
 }
 
 ```
@@ -214,14 +158,13 @@ public class CompositeTokenGranter implements TokenGranter {
 
 }
 ```
-```text
-tokenGranters初始化添加如下TokenGranter实现类：
-```
-* [AuthorizationCodeTokenGranter]()授权码模式（用于三方登录）,对应uri请求为/oauth/authorize,grant_type为authorization_code时使用该模式
+# TokenGranter实现类
+* [AuthorizationCodeTokenGranter]()授权码模式（用于三方登录）,对应uri请求为/oauth/token,grant_type为authorization_code时使用该模式
 * [ResourceOwnerPasswordTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ResourceOwnerPasswordTokenGranter.md)账号密码模式,对应uri请求/oauth/token，grant_type为password时使用该模式
 * [RefreshTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-RefreshTokenGranter.md),刷新token模式,对应uri请求/oauth/token,grant_type为refresh_token时使用该模式
 * [ClientCredentialsTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ClientCredentialsTokenGranter.md)模式用于用client_id和client_secret来获取授权,grant_type为client_credentials时使用该模式
-
+* [ImplicitTokenGranter]()该模式用于处理请求uri /oauth/authorize?scope=server&response_type=token&redirect_uri=http://www.baidu.com&client_id=aaa
+# tokenGranters初始化添加如下
 ```java
 	private List<TokenGranter> getDefaultTokenGranters() {
 		ClientDetailsService clientDetails = clientDetailsService();
