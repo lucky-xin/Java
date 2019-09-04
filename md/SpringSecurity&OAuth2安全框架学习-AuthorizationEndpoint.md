@@ -4,7 +4,7 @@ AuthorizationEndpoint为授权码授权认证端点，以及授权三方登录�
 实现方式：用户调用/oauth/authorize时因为没有访问权限(/oauth/authorize不能公开访问情况下)，
 抛出异常被
 ```
-[org.springframework.security.web.access.ExceptionTranslationFilter]()
+[org.springframework.security.web.access.ExceptionTranslationFilter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ExceptionTanslationFilter.md)
 ```text
 拦截处理，使用org.springframework.security.web.savedrequest.RequestCache保存当前的request以及response对象，使用
 org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint重定向到登录页面进行登录验证生成Authentication，
