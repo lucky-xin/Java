@@ -18,4 +18,5 @@
 * [elasticsearch重建索引](https://github.com/lucky-xin/Learning/blob/gh-pages/md/elasticsearch-reindex.md)
 * [SpringSecurity&OAuth2安全框架学习-令牌端点](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-TokenEndpoint.md)
 * [SpringSecurity&OAuth2安全框架学习-授权端点](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-AuthorizationEndpoint.md)
+* [Redis 哨兵模式 & SpringBoot](https://github.com/lucky-xin/Learning/blob/gh-pages/md/Redis-Sentinel.md)
 
