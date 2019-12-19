@@ -5,6 +5,7 @@
 * [Spring IoC容器学习-注册bean过程](http://note.youdao.com/noteshare?id=6a943413146a55b2cad180d247859d23&sub=9243CB8667FB4018A6D856B3D98292F5)
 * [Spring源码学习之AOP源码分析](https://github.com/lucky-xin/Learning/blob/gh-pages/md/Spring%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0%E4%B9%8BAOP.md)
 * [Spring事务实现深入解析](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringBoot%E4%BA%8B%E5%8A%A1%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86.md)
+* [SpringSecurity&OAuth2安全框架源码学习系列](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0.md)
 * [SQL语句学习](http://note.youdao.com/noteshare?id=ad0ca96a3b7f20087a621cfe1fb3131a)
 * [Zookeeper学习之-Zookeeper监听器原理](http://note.youdao.com/noteshare?id=c05ddbd83ff16734423b3debaa74df9f&sub=C6417CFE05A8491E9F44621FFF467651)
 * [Zookeeper学习之-CuratorFramework监听器使用（可无限监听）](http://note.youdao.com/noteshare?id=57376db91ebc52e33e35daa58fb34e9b&sub=C23C9D65A807447EB64133C08E4C401C)
@@ -15,7 +16,5 @@
 * [elasticsearch自动填写建议查询](https://github.com/lucky-xin/Learning/blob/gh-pages/md/elasticsearch-completion.md)
 * [elasticsearch的nested类型](https://github.com/lucky-xin/Learning/blob/gh-pages/md/elasticsearch-nested%E7%B1%BB%E5%9E%8B.md)
 * [elasticsearch重建索引](https://github.com/lucky-xin/Learning/blob/gh-pages/md/elasticsearch-reindex.md)
-
-* [SpringSecurity&OAuth2安全框架源码学习系列]()
 * [Redis Sentinel 集群高可用 & SpringBoot](https://github.com/lucky-xin/docker-redis-sentinel/blob/master/docker/redis-sentinel/note.md)
 
