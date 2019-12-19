@@ -371,3 +371,8 @@ repl_backlog_size:1048576
 repl_backlog_first_byte_offset:1
 repl_backlog_histlen:946051
 ```
+# SpringBoot 日志输出如下
+![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/SpringBoot-Sentinel.png)
+# Sentinel log
+![](https://github.com/lucky-xin/Learning/blob/gh-pages/image/Sentinel-Log.png)
+
