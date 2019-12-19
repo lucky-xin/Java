@@ -1,7 +1,8 @@
 ```text
-令牌端点具体处理登录权限uri /oauth/token在方法postAccessToken之中。
-查看postAccessToken方法可知在调用时必须传入认证已经认证的Authentication，否则报错。SpringSecurity构建Authentication思路为先验证客户端（client_id,client_secret）
-是否正确，如果正确就创建一个对象Authentication，并存入上下文，SecurityContextHolder.getContext().setAuthentication(authResult);
+令牌端点具体处理登录权限uri /oauth/token查看方法org.springframework.security.oauth2.provider.endpoint.TokenEndpoint#postAccessToken。
+方法可知在调用时必须传入认证Authentication，否则报错。
+SpringSecurity构建Authentication思路为先验证客户端（client_id,client_secret）是否正确，如果正确就创建一个对象Authentication，并存入上下文，
+SecurityContextHolder.getContext().setAuthentication(authResult);
 有两种请求方式对应两个不同的Filter
 ```
 [BasicAuthenticationFilter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-BasicAuthenticationFilter.md)
@@ -17,6 +18,27 @@ aaaaaaaadad = base64(client_id:client_secret)
 拦截如下请求url:
 http://127.0.0.1:1000/oauth/token?username=aaa&password=123456&grant_type=password&scope=read-write&client_id=aaa&client_secret=bbb
 ```
+TokenEndpoint用到的用户信息定义接口[UserDetails](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-UserDetails.md)
+和[客户端定义接口](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ClientDetails.md)
+客户基本信息表对应ClientDetails
+```sql
+CREATE TABLE `oauth_client_details`  (
+  `client_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `resource_ids` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `client_secret` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `scope` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `authorized_grant_types` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `web_server_redirect_uri` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `authorities` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `access_token_validity` int(11) NULL DEFAULT NULL,
+  `refresh_token_validity` int(11) NULL DEFAULT NULL,
+  `additional_information` varchar(4096) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `autoapprove` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL
+  PRIMARY KEY (`client_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '终端信息表' ROW_FORMAT = Dynamic;
+```
+
+TokenEndpoint 源码如下：
 ```java
 package org.springframework.security.oauth2.provider.endpoint;
 /**
@@ -55,7 +77,7 @@ public class TokenEndpoint extends AbstractEndpoint {
 	@RequestMapping(value = "/oauth/token", method=RequestMethod.POST)
 	public ResponseEntity<OAuth2AccessToken> postAccessToken(Principal principal, @RequestParam
 	Map<String, String> parameters) throws HttpRequestMethodNotSupportedException {
-        // 需要拿到Authentication。先认证ClientDetails,不然抛出异常
+        // 先认证ClientDetails，拿到Authentication。不然抛出异常
 		if (!(principal instanceof Authentication)) {
 			throw new InsufficientAuthenticationException(
 					"There is no client authentication. Try adding an appropriate authentication filter.");
@@ -94,17 +116,12 @@ public class TokenEndpoint extends AbstractEndpoint {
 				tokenRequest.setScope(Collections.<String> emptySet());
 			}
 		}
-		//private boolean isAuthCodeRequest(Map<String, String> parameters) {
-		//    return "authorization_code".equals(parameters.get("grant_type")) && parameters.get("code") != null;
-		//}
-        //是否为刷新token
+	
+        //是否为刷新token，具体判断为 "refresh_token".equals(parameters.get("grant_type")) && parameters.get("refresh_token") != null;
 		if (isRefreshTokenRequest(parameters)) {
 			// A refresh token has its own default scopes, so we should ignore any added by the factory here.
 			tokenRequest.setScope(OAuth2Utils.parseParameterList(parameters.get(OAuth2Utils.SCOPE)));
 		}
-        //private boolean isRefreshTokenRequest(Map<String, String> parameters) {
-		//    return "refresh_token".equals(parameters.get("grant_type")) && parameters.get("refresh_token") != null;
-		//}
         //getTokenGranter()返回CompositeTokenGranter
 		OAuth2AccessToken token = getTokenGranter().grant(tokenRequest.getGrantType(), tokenRequest);
 		if (token == null) {
@@ -112,7 +129,6 @@ public class TokenEndpoint extends AbstractEndpoint {
 		}
 
 		return getResponse(token);
-
 	}
 
 	/**
