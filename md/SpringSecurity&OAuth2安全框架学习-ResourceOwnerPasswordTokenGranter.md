@@ -9,7 +9,8 @@ ResourceOwnerPasswordTokenGranter(grant_type=password)为账号密码登录模�
    请求头 Authorization = Basic YWFhOmJiYg==
     Basic 空格 base64(aaa:bbb) -> Basic YWFhOmJiYg==
 ```
-先执行超类[AbstractTokenGranter]()的grant方法,ResourceOwnerPasswordTokenGranter重写了getOAuth2Authentication方法，检验用户信息
+先执行超类[AbstractTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-AbstractTokenGranter.md)
+的grant方法,ResourceOwnerPasswordTokenGranter重写了getOAuth2Authentication方法，检验用户信息
 源码如下
 ```java
     //类org.springframework.security.oauth2.provider.token.AbstractTokenGranter
@@ -19,7 +20,7 @@ ResourceOwnerPasswordTokenGranter(grant_type=password)为账号密码登录模�
 		if (!this.grantType.equals(grantType)) {
 			return null;
 		}
-		
+		// 获取客户端信息进行校验
 		String clientId = tokenRequest.getClientId();
 		ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
 		validateGrantType(grantType, client);
@@ -27,7 +28,7 @@ ResourceOwnerPasswordTokenGranter(grant_type=password)为账号密码登录模�
 		if (logger.isDebugEnabled()) {
 			logger.debug("Getting access token for: " + clientId);
 		}
-
+        // 创建token
 		return getAccessToken(client, tokenRequest);
 
 	}
@@ -166,6 +167,7 @@ public class DaoAuthenticationProvider extends AbstractUserDetailsAuthentication
 			throws AuthenticationException {
 		prepareTimingAttackProtection();
 		try {
+            // 根据org.springframework.security.core.userdetails.UserDetailsService接口实现获取UserDetails
 			UserDetails loadedUser = this.getUserDetailsService().loadUserByUsername(username);
 			if (loadedUser == null) {
 				throw new InternalAuthenticationServiceException(
@@ -303,7 +305,7 @@ public Authentication authenticate(Authentication authentication)
 创建ResponseEntity并相应请求。
 tokenServices
 ```
-为[org.springframework.security.oauth2.provider.token.DefaultTokenServices]()
+为[org.springframework.security.oauth2.provider.token.DefaultTokenServices](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-DefaultTokenServices.md)
 ```java
 public abstract class AbstractTokenGranter implements TokenGranter {
 
