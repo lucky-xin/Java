@@ -11,12 +11,11 @@
 * [关于ConcurrentModificationException异常](http://note.youdao.com/noteshare?id=701be139972656189121ec91b80bf315&sub=28FE708CB5CE4529B390942B4FD0B0A9)
 * [MyBatis源码解析](https://github.com/lucky-xin/Learning/blob/gh-pages/md/Mybatis%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90.md)
 * [MyBatis-plus初始化源码解析](https://github.com/lucky-xin/Learning/blob/gh-pages/md/MyBatis-plus%E5%88%9D%E5%A7%8B%E5%8C%96%E6%B5%81%E7%A8%8B.md)
-* [SpringSecurity源码解析](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringBoot%20SpringSecurity%26OAuth%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0.md)
 * [elasticsearch倒排索引以及查询](https://github.com/lucky-xin/Learning/blob/gh-pages/md/elasticsearch.md)
 * [elasticsearch自动填写建议查询](https://github.com/lucky-xin/Learning/blob/gh-pages/md/elasticsearch-completion.md)
 * [elasticsearch的nested类型](https://github.com/lucky-xin/Learning/blob/gh-pages/md/elasticsearch-nested%E7%B1%BB%E5%9E%8B.md)
 * [elasticsearch重建索引](https://github.com/lucky-xin/Learning/blob/gh-pages/md/elasticsearch-reindex.md)
-* [SpringSecurity&OAuth2安全框架学习-令牌端点](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-TokenEndpoint.md)
-* [SpringSecurity&OAuth2安全框架学习-授权端点](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-AuthorizationEndpoint.md)
-* [Redis 哨兵模式 & SpringBoot](https://github.com/lucky-xin/Learning/blob/gh-pages/md/Redis-Sentinel.md)
+
+* [SpringSecurity&OAuth2安全框架源码学习系列]()
+* [Redis Sentinel 集群高可用 & SpringBoot](https://github.com/lucky-xin/docker-redis-sentinel/blob/master/docker/redis-sentinel/note.md)
 
