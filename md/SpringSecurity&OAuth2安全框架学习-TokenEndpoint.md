@@ -175,6 +175,7 @@ public class CompositeTokenGranter implements TokenGranter {
 * [RefreshTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-RefreshTokenGranter.md),刷新token模式,对应uri请求/oauth/token,grant_type为refresh_token时使用该模式
 * [ClientCredentialsTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ClientCredentialsTokenGranter.md)模式用于用client_id和client_secret来获取授权,grant_type为client_credentials时使用该模式
 * [ImplicitTokenGranter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-ImplicitTokenGranter.md)该模式用于处理请求uri /oauth/authorize?scope=server&response_type=token&redirect_uri=http://www.baidu.com&client_id=aaa
+* [AbstractTokenGranter]()
 # tokenGranters初始化添加如下
 ```java
 	private List<TokenGranter> getDefaultTokenGranters() {

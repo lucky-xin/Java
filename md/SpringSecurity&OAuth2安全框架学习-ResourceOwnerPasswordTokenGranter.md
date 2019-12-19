@@ -8,7 +8,33 @@ ResourceOwnerPasswordTokenGranter(grant_type=password)为账号密码登录模�
    &grant_type=password&scope=read
    请求头 Authorization = Basic YWFhOmJiYg==
     Basic 空格 base64(aaa:bbb) -> Basic YWFhOmJiYg==
-具体实现,源码如下
+```
+先执行超类[AbstractTokenGranter]()的grant方法,ResourceOwnerPasswordTokenGranter重写了getOAuth2Authentication方法，检验用户信息
+源码如下
+```java
+    //类org.springframework.security.oauth2.provider.token.AbstractTokenGranter
+    @Override
+	public OAuth2AccessToken grant(String grantType, TokenRequest tokenRequest) {
+
+		if (!this.grantType.equals(grantType)) {
+			return null;
+		}
+		
+		String clientId = tokenRequest.getClientId();
+		ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+		validateGrantType(grantType, client);
+
+		if (logger.isDebugEnabled()) {
+			logger.debug("Getting access token for: " + clientId);
+		}
+
+		return getAccessToken(client, tokenRequest);
+
+	}
+
+	protected OAuth2AccessToken getAccessToken(ClientDetails client, TokenRequest tokenRequest) {
+		return tokenServices.createAccessToken(getOAuth2Authentication(client, tokenRequest));
+	}
 ```
 ```java
 package org.springframework.security.oauth2.provider.password;
@@ -171,49 +197,6 @@ public class DaoAuthenticationProvider extends AbstractUserDetailsAuthentication
 		}
 		return super.createSuccessAuthentication(principal, authentication, user);
 	}
-
-	private void prepareTimingAttackProtection() {
-		if (this.userNotFoundEncodedPassword == null) {
-			this.userNotFoundEncodedPassword = this.passwordEncoder.encode(USER_NOT_FOUND_PASSWORD);
-		}
-	}
-
-	private void mitigateAgainstTimingAttack(UsernamePasswordAuthenticationToken authentication) {
-		if (authentication.getCredentials() != null) {
-			String presentedPassword = authentication.getCredentials().toString();
-			this.passwordEncoder.matches(presentedPassword, this.userNotFoundEncodedPassword);
-		}
-	}
-
-	/**
-	 * Sets the PasswordEncoder instance to be used to encode and validate passwords. If
-	 * not set, the password will be compared using {@link PasswordEncoderFactories#createDelegatingPasswordEncoder()}
-	 *
-	 * @param passwordEncoder must be an instance of one of the {@code PasswordEncoder}
-	 * types.
-	 */
-	public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
-		Assert.notNull(passwordEncoder, "passwordEncoder cannot be null");
-		this.passwordEncoder = passwordEncoder;
-		this.userNotFoundEncodedPassword = null;
-	}
-
-	protected PasswordEncoder getPasswordEncoder() {
-		return passwordEncoder;
-	}
-
-	public void setUserDetailsService(UserDetailsService userDetailsService) {
-		this.userDetailsService = userDetailsService;
-	}
-
-	protected UserDetailsService getUserDetailsService() {
-		return userDetailsService;
-	}
-
-	public void setUserDetailsPasswordService(
-			UserDetailsPasswordService userDetailsPasswordService) {
-		this.userDetailsPasswordService = userDetailsPasswordService;
-	}
 }
 
 ```
@@ -315,6 +298,17 @@ public Authentication authenticate(Authentication authentication)
 ```
 ```text
 创建Authentication之后回到ResourceOwnerPasswordTokenGranter的getOAuth2Authentication方法，创建OAuth2Authentication并返回
-（return new OAuth2Authentication(storedOAuth2Request, userAuth)）最后回到ResourceOwnerPasswordTokenGranter的postAccessToken方法
-创建ResponseEntity并相应请求
+（return new OAuth2Authentication(storedOAuth2Request, userAuth)）,然后回到超类之中如下，使用tokenServices创建OAuth2AccessToken，
+最后回到ResourceOwnerPasswordTokenGranter的postAccessToken方法
+创建ResponseEntity并相应请求。
+tokenServices
+```
+为[org.springframework.security.oauth2.provider.token.DefaultTokenServices]()
+```java
+public abstract class AbstractTokenGranter implements TokenGranter {
+
+	protected OAuth2AccessToken getAccessToken(ClientDetails client, TokenRequest tokenRequest) {
+		return tokenServices.createAccessToken(getOAuth2Authentication(client, tokenRequest));
+	}
+}
 ```
