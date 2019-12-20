@@ -1,4 +1,5 @@
-<iframe height=498 width=510 src="https://github.com/lucky-xin/Learning/blob/gh-pages/video/FeignDebug.mov" frameborder=0 allowfullscreen></iframe>
+[![Watch the video](https://raw.github.com/GabLeRoux/WebMole/master/ressources/WebMole_Youtube_Video.png)](https://github.com/lucky-xin/Learning/blob/gh-pages/video/FeignDebug.mov)
+
 ## 注解@EnableFeignClients扫描并注册bean
 org.springframework.cloud.openfeign.EnableFeignClients
 ```java
