@@ -117,15 +117,17 @@ org.springframework.cloud.openfeign.FeignClient并注册BeanDefinition
 ```text
 注解EnableFeignClients导入了FeignClientsRegistrar类,
 使用org.springframework.cloud.openfeign.FeignClientFactoryBean来完成对Spring Bean的注入。通过@Autowired或者构造器注入的feign接口
-实际上的对象为org.springframework.cloud.openfeign.FeignClientFactoryBean，Dubbo,MyBatis的mapper类似。获取具体代理对象
+实际上的对象为org.springframework.cloud.openfeign.FeignClientFactoryBean的getObject获取到的对象，Dubbo,MyBatis的mapper类似。
+获取具体代理对象
 为org.springframework.cloud.openfeign.FeignClientFactoryBean#getObject方法
 查看
 ```
-[FeignClientFactoryBean]()
+[FeignClientFactoryBean](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringCloud-FeignClientFactoryBean.md)
 ```text
 可知FeignClientFactoryBean属性对应EnableFeignClients属性
 ```
-源码如下
+
+## FeignClientsRegistrar源码如下
 ```java
 package org.springframework.cloud.openfeign;
 
@@ -510,14 +512,64 @@ class FeignClientsRegistrar implements ImportBeanDefinitionRegistrar,
 	}
 }
 ```
+## 注册好BeanDefinition之后，Bean注入FeignClient注解的接口之后会调用org.springframework.cloud.openfeign.FeignClientFactoryBean#getObject
+获取代理对象
+#### 源码如下
+```java
+    @Override
+	public Object getObject() throws Exception {
+        // 委派到getTarget方法
+		return getTarget();
+	}
 
-feign.ReflectiveFeign.newInstance
+	/**
+	 * @param <T> the target type of the Feign client
+	 * @return a {@link Feign} client created with the specified data and the context information
+	 */
+	<T> T getTarget() {
+		FeignContext context = applicationContext.getBean(FeignContext.class);
+		Feign.Builder builder = feign(context);
+        // 如果注解org.springframework.cloud.openfeign.FeignClient没有指定url并且指定了value或者name并且没有指定url,则去注册中心找到服务名为value或者name
+        //的服务并使用负载均衡选取某一个服务
+		if (!StringUtils.hasText(this.url)) {
+			if (!this.name.startsWith("http")) {
+				url = "http://" + this.name;
+			}
+			else {
+				url = this.name;
+			}
+			url += cleanPath();
+			return (T) loadBalance(builder, context, new HardCodedTarget<>(this.type,
+					this.name, url));
+		}
+        // 如果指定了url则使用该url生成一个服务调用代理，直接使用如果client属于LoadBalancerFeignClient则获取delegate
+		if (StringUtils.hasText(this.url) && !this.url.startsWith("http")) {
+			this.url = "http://" + this.url;
+		}
+		String url = this.url + cleanPath();
+		Client client = getOptional(context, Client.class);
+		if (client != null) {
+			if (client instanceof LoadBalancerFeignClient) {
+				// not load balancing because we have a url,
+				// but ribbon is on the classpath, so unwrap
+				client = ((LoadBalancerFeignClient)client).getDelegate();
+			}
+			builder.client(client);
+		}
+		Targeter targeter = get(context, Targeter.class);
+        // 最后委派到feign.ReflectiveFeign#newInstance
+		return (T) targeter.target(this, builder, context, new HardCodedTarget<>(
+				this.type, this.name, url));
+	}
+```
+
+# feign.ReflectiveFeign#newInstance源码如下
 ```java
   public <T> T newInstance(Target<T> target) {
     Map<String, MethodHandler> nameToHandler = targetToHandlersByName.apply(target);
     Map<Method, MethodHandler> methodToHandler = new LinkedHashMap<Method, MethodHandler>();
     List<DefaultMethodHandler> defaultMethodHandlers = new LinkedList<DefaultMethodHandler>();
-
+    // 遍历所有有注解FeignClient的接口定义的所有方法，生成代理类以及代理方法封装为
     for (Method method : target.type().getMethods()) {
       if (method.getDeclaringClass() == Object.class) {
         continue;
@@ -529,7 +581,11 @@ feign.ReflectiveFeign.newInstance
         methodToHandler.put(method, nameToHandler.get(Feign.configKey(target.type(), method)));
       }
     }
+    // 使用JDK动态代理生成代理对象，如果熔断器为Sentinel则factory.create实现
+    //在com.alibaba.cloud.sentinel.feign.SentinelFeign.Builder#build之中
+   // handler 为com.alibaba.cloud.sentinel.feign.SentinelInvocationHandler
     InvocationHandler handler = factory.create(target, methodToHandler);
+    // 使用Proxy创建feign.Target.HardCodedTarget
     T proxy = (T) Proxy.newProxyInstance(target.type().getClassLoader(),
         new Class<?>[] {target.type()}, handler);
 
@@ -539,7 +595,7 @@ feign.ReflectiveFeign.newInstance
     return proxy;
   }
 ```
-feign.SynchronousMethodHandler
+# 拿到feign.Target.HardCodedTarget代理对象之后就可以处理请求了，请求具体处理在feign.SynchronousMethodHandler#invoke之中源码如下
 ```java
   @Override
   public Object invoke(Object[] argv) throws Throwable {
@@ -547,6 +603,7 @@ feign.SynchronousMethodHandler
     Retryer retryer = this.retryer.clone();
     while (true) {
       try {
+        //封装参数请求远程接口并使用解码器对返回结果进行解析
         return executeAndDecode(template);
       } catch (RetryableException e) {
         try {
@@ -555,7 +612,7 @@ feign.SynchronousMethodHandler
           Throwable cause = th.getCause();
           if (propagationPolicy == UNWRAP && cause != null) {
             throw cause;
-          } else {
+      } else {
             throw th;
           }
         }
@@ -565,5 +622,87 @@ feign.SynchronousMethodHandler
         continue;
       }
     }
+  }
+```
+### feign.SynchronousMethodHandler#executeAndDecode方法之中
+```java
+ Object executeAndDecode(RequestTemplate template) throws Throwable {
+    // 构建reuqest并拷贝请求头等详见下面targetRequest方法解析
+    Request request = targetRequest(template);
+
+    if (logLevel != Logger.Level.NONE) {
+      logger.logRequest(metadata.configKey(), logLevel, request);
+    }
+
+    Response response;
+    long start = System.nanoTime();
+    try {
+       // 执行http请求
+      response = client.execute(request, options);
+    } catch (IOException e) {
+      if (logLevel != Logger.Level.NONE) {
+        logger.logIOException(metadata.configKey(), logLevel, e, elapsedTime(start));
+      }
+      throw errorExecuting(request, e);
+    }
+    long elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+    boolean shouldClose = true;
+    try {
+      if (logLevel != Logger.Level.NONE) {
+        response =
+            logger.logAndRebufferResponse(metadata.configKey(), logLevel, response, elapsedTime);
+      }
+      if (Response.class == metadata.returnType()) {
+        if (response.body() == null) {
+          return response;
+        }
+        if (response.body().length() == null ||
+            response.body().length() > MAX_RESPONSE_BUFFER_SIZE) {
+          shouldClose = false;
+          return response;
+        }
+        // Ensure the response body is disconnected
+        byte[] bodyData = Util.toByteArray(response.body().asInputStream());
+        return response.toBuilder().body(bodyData).build();
+      }
+      if (response.status() >= 200 && response.status() < 300) {
+        if (void.class == metadata.returnType()) {
+          return null;
+        } else {
+           //解析请求返回数据
+          Object result = decode(response);
+          shouldClose = closeAfterDecode;
+          return result;
+        }
+      } else if (decode404 && response.status() == 404 && void.class != metadata.returnType()) {
+        //解析请求返回数据
+        Object result = decode(response);
+        shouldClose = closeAfterDecode;
+        return result;
+      } else {
+        throw errorDecoder.decode(metadata.configKey(), response);
+      }
+    } catch (IOException e) {
+      if (logLevel != Logger.Level.NONE) {
+        logger.logIOException(metadata.configKey(), logLevel, e, elapsedTime);
+      }
+      throw errorReading(request, response, e);
+    } finally {
+      if (shouldClose) {
+        ensureClosed(response.body());
+      }
+    }
+  }
+```
+### feign.SynchronousMethodHandler#targetRequest方法源码如下
+```java
+  Request targetRequest(RequestTemplate template) {
+    // 只要实现了RequestInterceptor接口并注册入当前IoC环境之中,都会出现在requestInterceptors之中
+    // 在所有Feign代理之前执行，可以用于请求头拷贝如OAuth2FeignRequestInterceptor用于拷贝Authorization请求头
+    for (RequestInterceptor interceptor : requestInterceptors) {
+      interceptor.apply(template);
+    }
+    return target.apply(template);
   }
 ```
