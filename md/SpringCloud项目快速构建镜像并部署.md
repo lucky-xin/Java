@@ -1,4 +1,5 @@
 # SpringCloud项目快速构建镜像并部署
+## SpringCloud pom.xml配置如下，这个是作为其它微服务开发模块pom.xml的parent
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
