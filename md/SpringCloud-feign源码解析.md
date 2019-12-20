@@ -1,4 +1,5 @@
-注解@EnableFeignClients扫描并注册bean
+<iframe height=498 width=510 src="https://github.com/lucky-xin/Learning/blob/gh-pages/video/FeignDebug.mov" frameborder=0 allowfullscreen></iframe>
+## 注解@EnableFeignClients扫描并注册bean
 org.springframework.cloud.openfeign.EnableFeignClients
 ```java
 @Retention(RetentionPolicy.RUNTIME)
