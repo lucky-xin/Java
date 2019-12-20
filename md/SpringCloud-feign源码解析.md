@@ -1,4 +1,4 @@
-[![Watch the video](https://github.com/lucky-xin/Learning/blob/gh-pages/image/Screen.png)](https://www.bilibili.com/video/av79939812/)
+[![Debug Feign 源码调用](https://github.com/lucky-xin/Learning/blob/gh-pages/image/Screen.png)](https://www.bilibili.com/video/av79939812/)
 
 ## 注解@EnableFeignClients扫描并注册bean
 org.springframework.cloud.openfeign.EnableFeignClients
