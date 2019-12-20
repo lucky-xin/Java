@@ -2,7 +2,7 @@
 OAuth2AuthenticationManager使用接口ResourceServerTokenServices来验证token,如果是访问权限认证中心则ResourceServerTokenServices为
 ```
 [DefaultTokenServices](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-DefaultTokenServices.md)
-如果是其它模块则ResourceServerTokenServices为[RemoteTokenServices]()
+如果是其它模块则ResourceServerTokenServices为[RemoteTokenServices](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-RemoteTokenServices.md)
 
 ```java
 package org.springframework.security.oauth2.provider.authentication;

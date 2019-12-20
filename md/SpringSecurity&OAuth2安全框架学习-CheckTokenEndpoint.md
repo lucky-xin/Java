@@ -64,7 +64,7 @@ public class CheckTokenEndpoint {
 		if (token.isExpired()) {
 			throw new InvalidTokenException("Token has expired");
 		}
-
+        //根据token值查询缓存获取token绑定的权限信息
 		OAuth2Authentication authentication = resourceServerTokenServices.loadAuthentication(token.getValue());
 
 		return accessTokenConverter.convertAccessToken(token, authentication);

@@ -21,7 +21,9 @@ security:
       loadBalanced: true
       token-info-uri: http://${AUTH2_ENDPOINT:datainsights-auth:6000}/oauth/check_token
 ```
-成功访问认证中心之后如果token有权限则调用[DefaultAccessTokenConverter]()转换token信息
+### http://ip:port/oauth/check_token 请求发送到权限认证中心的
+[CheckTokenEndpoint](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-CheckTokenEndpoint.md)
+成功访问认证中心之后如果token有权限则调用[DefaultAccessTokenConverter](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-DefaultAccessTokenConverter.md)转换token信息
 ```java
  public class RemoteTokenServices implements ResourceServerTokenServices {
  

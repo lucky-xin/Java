@@ -2,7 +2,7 @@
 OAuth2AuthenticationProcessingFilter 用于拦截访问SpringBoot & SpringCloud 的请求，使用TokenExtractor接口的实现类默认为[BearerTokenExtractor](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-BearerTokenExtractor.md)解析以Bearer开头（忽略大小写）的token
 解析请求头Authorization获取认证的token值，根据
 ```
-[org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationManager]()token去校验token
+[org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationManager](https://github.com/lucky-xin/Learning/blob/gh-pages/md/SpringSecurity%26OAuth2%E5%AE%89%E5%85%A8%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0-OAuth2AuthenticationManager.md)token去校验token
 ```java
 ```
 
