@@ -1,4 +1,4 @@
-[![Watch the video](https://raw.github.com/GabLeRoux/WebMole/master/ressources/WebMole_Youtube_Video.png)](https://github.com/lucky-xin/Learning/blob/gh-pages/video/FeignDebug.mov)
+[![Watch the video](https://raw.github.com/GabLeRoux/WebMole/master/ressources/WebMole_Youtube_Video.png)](https://www.bilibili.com/video/av79939812/)
 
 ## 注解@EnableFeignClients扫描并注册bean
 org.springframework.cloud.openfeign.EnableFeignClients
